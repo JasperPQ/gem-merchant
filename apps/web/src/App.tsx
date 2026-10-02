@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { GameAction, GuestbookEntry, LobbyRoomSnapshot } from "@gem-merchant/game";
 import GameBoard from "./GameBoard.js";
+import GameRules from "./GameRules.js";
 import RoomChat from "./RoomChat.js";
 import { socket } from "./socket.js";
 
@@ -168,6 +169,7 @@ function App() {
           <Brand />
           <ConnectionStatus connected={connected} />
         </header>
+        <GameRules />
         {room.status === "playing" && room.game ? (
           <GameBoard room={room} busy={busy} error={error} notice={notice} onAction={submitGameAction} />
         ) : (

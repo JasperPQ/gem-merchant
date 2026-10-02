@@ -368,6 +368,21 @@ button:focus-visible, input:focus-visible, a:focus-visible {
 .opponent-gem-count strong { color: #fff1d0; font-family: "Noto Serif SC", Georgia, serif; font-size: 10px; }
 .offline-tag { position: absolute; right: 8px; top: -7px; border: 1px solid rgba(230, 160, 140, .5); border-radius: 10px; padding: 2px 6px; background: #5b2f27; color: #f3cfc4; font-size: 8px; }
 
+.game-rules { margin-top: 18px; }
+.game-rules-toggle { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #e0dccf; border-radius: 20px; padding: 8px 15px; color: #3d5146; background: rgba(255, 254, 250, 0.85); cursor: pointer; font-size: 12px; font-weight: 600; transition: border-color 150ms ease, background 150ms ease; }
+.game-rules-toggle:hover { border-color: #bfb59c; background: #fff; }
+.game-rules-toggle > span { color: var(--gold); }
+.game-rules-toggle > i { color: #a0a198; font-size: 10px; font-style: normal; font-weight: 400; }
+.game-rules.open .game-rules-toggle { border-color: #c9b88f; }
+.game-rules-panel { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 22px; margin-top: 10px; border: 1px solid rgba(56, 64, 54, 0.09); border-radius: 17px; padding: 20px 24px; background: rgba(255, 254, 250, 0.92); box-shadow: 0 18px 55px rgba(42, 48, 38, 0.055); }
+.game-rules-block h3 { margin: 0 0 6px; color: #26392f; font-family: "Noto Serif SC", Georgia, serif; font-size: 14px; font-weight: 600; }
+.game-rules-block p, .game-rules-block li { margin: 0; color: #5f6a61; font-size: 12px; line-height: 1.7; }
+.game-rules-block ol, .game-rules-block ul { margin: 0; padding-left: 18px; }
+.game-rules-block li + li { margin-top: 3px; }
+.game-rules-block b { color: #2f4a3c; font-weight: 600; }
+.game-rules-block .game-rules-note { margin-top: 6px; color: #9a8258; font-size: 11px; }
+.game-rules-block:nth-child(2) { grid-row: span 2; }
+
 .room-chat { margin: 4px 0 30px; border: 2px solid #705139; border-radius: 18px; padding: 14px 16px 15px; color: #eee6d1; background: radial-gradient(ellipse at 45% 70%, #37664e 0%, #2c543f 70%, #284b3a 100%); box-shadow: 0 14px 30px rgba(35, 37, 28, 0.16), inset 0 2px 14px rgba(15, 35, 25, 0.28); }
 .room-chat-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .room-chat-heading h2 { margin: 0; color: #f1e7ce; font-family: "Noto Serif SC", Georgia, serif; font-size: 14px; font-weight: 600; }
@@ -516,14 +531,14 @@ button:focus-visible, input:focus-visible, a:focus-visible {
 .tabletop-card-points { margin-top: 8px; color: #36483a; font-family: "Noto Serif SC", Georgia, serif; font-size: 25px; line-height: 1; }
 .tabletop-card-points small { margin-left: 2px; color: #8b887d; font-family: "DM Sans", sans-serif; font-size: 8px; font-weight: 400; }
 .tabletop-card-discount { margin-top: 4px; color: #777a6e; font-size: 7px; }
-.tabletop-card-cost { display: flex; flex-wrap: wrap; gap: 3px; margin-top: auto; padding-top: 7px; }
-.tabletop-card-cost i { min-width: 18px; display: inline-flex; align-items: center; gap: 2px; border-radius: 3px; padding: 2px 3px; color: #f8f5eb; background: #4e5751; font-size: 7px; font-style: normal; }
+.tabletop-card-cost { display: flex; flex-wrap: wrap; gap: 4px; margin-top: auto; padding-top: 8px; }
+.tabletop-card-cost i { min-width: 30px; display: inline-flex; align-items: baseline; justify-content: center; gap: 3px; border-radius: 4px; padding: 3px 6px; color: #f8f5eb; background: #4e5751; font-size: 14px; font-style: normal; font-weight: 700; line-height: 1.1; }
 .tabletop-card-cost .cost-white { color: #5c594e; background: #e2ddce; }
 .tabletop-card-cost .cost-blue { background: #607f94; }
 .tabletop-card-cost .cost-green { background: #607f61; }
 .tabletop-card-cost .cost-red { background: #a76558; }
 .tabletop-card-cost .cost-black { background: #414b45; }
-.tabletop-card-cost b { font-size: 6px; font-weight: 500; }
+.tabletop-card-cost b { font-size: 10px; font-weight: 500; }
 .tabletop-card-affordance { position: absolute; right: 7px; bottom: 7px; color: #527451; font-size: 7px; opacity: 0; transition: opacity 140ms ease; }
 .tabletop-card:hover .tabletop-card-affordance, .tabletop-card:focus-visible .tabletop-card-affordance { opacity: 1; }
 .tabletop-deck { position: relative; min-width: 0; min-height: 117px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; border: 1px dashed rgba(231, 215, 179, .42); border-radius: 7px; color: #efe5cd; background: rgba(18, 39, 28, .27); cursor: pointer; transition: background 140ms ease, transform 140ms ease; }
@@ -616,6 +631,7 @@ button.tabletop-inventory-card:hover { background: rgba(248, 243, 222, .17); }
 .tabletop-card-dialog-footnote { margin: 10px 0 0; color: #a09d90; font-size: 8px; line-height: 1.55; }
 
 @media (max-width: 850px) {
+  .game-rules-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .app-shell { width: min(680px, calc(100% - 40px)); }
   .welcome-grid { grid-template-columns: 1fr; gap: 38px; padding: 54px 0 36px; }
   .welcome-copy { padding-left: 2px; }
@@ -677,6 +693,8 @@ button.tabletop-inventory-card:hover { background: rgba(248, 243, 222, .17); }
   .opponent-frame::before { inset: 4px; border-radius: 12px; }
   .opponent-felt { border-radius: 11px; padding: 10px 8px 8px; }
   .opponent-strip { grid-template-columns: 1fr; }
+  .game-rules-panel { grid-template-columns: 1fr; padding: 16px; }
+  .game-rules-block:nth-child(2) { grid-row: auto; }
   .room-chat, .room-chat.light { padding: 11px 10px 12px; border-radius: 14px; }
   .room-chat-heading { flex-direction: column; gap: 3px; }
   .room-chat-list { height: 180px; }
@@ -711,6 +729,9 @@ button.tabletop-inventory-card:hover { background: rgba(248, 243, 222, .17); }
   .tabletop-level { padding: 7px; }
   .tabletop-card-row { grid-template-columns: repeat(2, minmax(0, 1fr)) 55px; gap: 6px; }
   .tabletop-card { min-height: 105px; padding: 7px 6px; }
+  .tabletop-card-cost { gap: 3px; }
+  .tabletop-card-cost i { min-width: 24px; gap: 2px; padding: 2px 4px; font-size: 12px; }
+  .tabletop-card-cost b { font-size: 9px; }
   .tabletop-card-row .tabletop-deck { grid-column: 3; grid-row: 1 / span 2; }
   .tabletop-deck { min-height: 105px; }
   .tabletop-player-inventory { grid-column: 1; grid-row: 3; padding: 9px; }
