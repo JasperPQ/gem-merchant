@@ -7,6 +7,7 @@ import { Server } from "socket.io";
 import {
   applyAction,
   createGame,
+  redactGameForViewer,
   type ClientToServerEvents,
   type CreateRoomPayload,
   type DevelopmentCard,
@@ -171,19 +172,22 @@ function generateRoomCode(): string {
   ).join("");
 }
 
-function snapshot(room: RoomState): LobbyRoomSnapshot {
+function snapshot(room: RoomState, viewerId: string): LobbyRoomSnapshot {
   return {
     code: room.code,
     capacity: room.capacity,
     status: room.status,
     members: room.members.map((member) => ({ ...member })),
     chat: room.chat.map((entry) => ({ ...entry })),
-    ...(room.game ? { game: room.game } : {}),
+    ...(room.game ? { game: redactGameForViewer(room.game, viewerId) } : {}),
   };
 }
 
 function emitRoomUpdate(room: RoomState): void {
-  io.to(room.code).emit("room:updated", snapshot(room));
+  // 每位成员单独发送，隐藏牌库和他人暗抽预留卡的内容。
+  for (const member of room.members) {
+    io.to(member.id).emit("room:updated", snapshot(room, member.id));
+  }
 }
 
 function findRoomForSocket(socketId: string): RoomState | undefined {
@@ -309,7 +313,7 @@ io.on("connection", (socket) => {
     rooms.set(code, room);
     socketRooms.set(socket.id, code);
     void socket.join(code);
-    ack({ ok: true, data: snapshot(room) });
+    ack({ ok: true, data: snapshot(room, socket.id) });
     emitRoomUpdate(room);
   });
 
@@ -351,7 +355,7 @@ io.on("connection", (socket) => {
     room.members.push(member);
     socketRooms.set(socket.id, code);
     void socket.join(code);
-    ack({ ok: true, data: snapshot(room) });
+    ack({ ok: true, data: snapshot(room, socket.id) });
     emitRoomUpdate(room);
   });
 
@@ -381,7 +385,7 @@ io.on("connection", (socket) => {
         noblesFile.nobles,
       );
       room.status = "playing";
-      const roomSnapshot = snapshot(room);
+      const roomSnapshot = snapshot(room, socket.id);
       ack({ ok: true, data: roomSnapshot });
       emitRoomUpdate(room);
     } catch (error) {
@@ -418,7 +422,7 @@ io.on("connection", (socket) => {
       room.game = applyAction(room.game, socket.id, action);
       // 对局结束时清空房间聊天记录。
       if (wasActive && room.game.status === "finished") room.chat = [];
-      const roomSnapshot = snapshot(room);
+      const roomSnapshot = snapshot(room, socket.id);
       ack({ ok: true, data: roomSnapshot });
       emitRoomUpdate(room);
     } catch (error) {

@@ -151,6 +151,7 @@ export function createGame(
 		gems: zeroTokenCounts(),
 		purchasedCards: [],
 		reservedCards: [],
+		hiddenReservedCardIds: [],
 		nobles: [],
 	}));
 	const shuffledNobles = shuffle(nobles, random);
@@ -179,6 +180,7 @@ function cloneState(state: GameState): GameState {
 			gems: { ...player.gems },
 			purchasedCards: [...player.purchasedCards],
 			reservedCards: [...player.reservedCards],
+			hiddenReservedCardIds: [...player.hiddenReservedCardIds],
 			nobles: [...player.nobles],
 		})),
 		bank: { ...state.bank },
@@ -375,6 +377,7 @@ function applyReserveCard(
 		}
 	}
 	player.reservedCards.push(card);
+	if (action.source.kind === "deck") player.hiddenReservedCardIds.push(card.id);
 	if (state.bank.gold > 0) {
 		state.bank.gold -= 1;
 		player.gems.gold += 1;
@@ -402,6 +405,7 @@ function getCardForPurchase(
 	if (!card) {
 		fail("CARD_NOT_AVAILABLE", `Card ${source.cardId} could not be removed from the reserve.`);
 	}
+	player.hiddenReservedCardIds = player.hiddenReservedCardIds.filter((id) => id !== card.id);
 	return card;
 }
 
@@ -504,5 +508,33 @@ export function getRemainingCost(player: PlayerState, card: DevelopmentCard): Co
 		green: Math.max(0, card.cost.green - bonuses.green),
 		red: Math.max(0, card.cost.red - bonuses.red),
 		black: Math.max(0, card.cost.black - bonuses.black),
+	};
+}
+function hiddenCard(id: string, level: CardLevel): DevelopmentCard {
+	return { id, level, bonusColor: "white", points: 0, cost: { white: 0, blue: 0, green: 0, red: 0, black: 0 } };
+}
+
+/**
+ * 生成某位玩家可见的对局状态：牌库只保留数量，其他玩家暗抽预留的卡只保留等级。
+ */
+export function redactGameForViewer(state: GameState, viewerId: string): GameState {
+	return {
+		...state,
+		players: state.players.map((player) => {
+			if (player.id === viewerId) return player;
+			const hiddenIds: string[] = [];
+			const reservedCards = player.reservedCards.map((card, index) => {
+				if (!player.hiddenReservedCardIds.includes(card.id)) return card;
+				const id = `hidden-${index}`;
+				hiddenIds.push(id);
+				return hiddenCard(id, card.level);
+			});
+			return { ...player, reservedCards, hiddenReservedCardIds: hiddenIds };
+		}),
+		decks: {
+			1: state.decks[1].map((_, index) => hiddenCard(`deck-1-${index}`, 1)),
+			2: state.decks[2].map((_, index) => hiddenCard(`deck-2-${index}`, 2)),
+			3: state.decks[3].map((_, index) => hiddenCard(`deck-3-${index}`, 3)),
+		},
 	};
 }

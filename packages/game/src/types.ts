@@ -35,6 +35,8 @@ export interface PlayerState {
 	gems: TokenCounts;
 	purchasedCards: DevelopmentCard[];
 	reservedCards: DevelopmentCard[];
+	/** 从牌库暗抽预留的卡牌 id；其他玩家看不到这些卡的内容。 */
+	hiddenReservedCardIds: string[];
 	nobles: Noble[];
 }
 

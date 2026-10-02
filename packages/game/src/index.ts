@@ -1,4 +1,4 @@
-export { applyAction, createGame, getPlayerBonuses, getPlayerScore, getRemainingCost } from "./engine.js";
+export { applyAction, createGame, getPlayerBonuses, getPlayerScore, getRemainingCost, redactGameForViewer } from "./engine.js";
 export {
 	CARD_LEVELS,
 	GEM_COLORS,

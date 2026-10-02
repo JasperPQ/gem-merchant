@@ -80,6 +80,7 @@ function TabletopView({
   onReserveDeck: (level: 1 | 2 | 3) => void;
 }) {
   const [selectedCard, setSelectedCard] = useState<SelectedCard | null>(null);
+  const playerBonuses = getPlayerBonuses(player);
   const closeDialogRef = useRef<HTMLButtonElement>(null);
   const differentColorsAvailable = GEM_COLORS.filter((color) => game.bank[color] > 0).length;
   const canTakeSelection = selectedColors.length > 0 && (
@@ -135,6 +136,16 @@ function TabletopView({
                     <span className="gem-stack-count">{game.bank[color]}</span>
                     <span className="gem-stack-name">{colorNames[color]}色</span>
                   </button>
+                  {color !== "gold" && (
+                    <button
+                      type="button"
+                      className="gem-stack-take-two"
+                      title={`同色拿取两枚${colorNames[color]}色宝石（该色需剩余至少 4 枚）`}
+                      aria-label={`同色拿取两枚${colorNames[color]}色宝石`}
+                      disabled={!isMyTurn || busy || game.bank[color] < 4 || game.status !== "active"}
+                      onClick={() => onTakeTwo(color)}
+                    >+2</button>
+                  )}
                 </div>
               ))}
               <button
@@ -145,7 +156,7 @@ function TabletopView({
               >
                 拿取所选 {selectedColors.length > 0 ? `· ${selectedColors.map((color) => colorNames[color]).join(" ")}` : "宝石"}
               </button>
-              <p className="tabletop-bank-hint">点选不同颜色；同色拿 2 枚可在详情中操作。</p>
+              <p className="tabletop-bank-hint">点选不同颜色拿取；点右侧 +2 同色拿 2 枚（该色需剩余至少 4 枚）。</p>
             </aside>
 
             <div className="tabletop-market-area">
@@ -249,18 +260,11 @@ function TabletopView({
                     <span>{colorNames[color]}</span>
                     <strong>{player.gems[color]}</strong>
                     {color !== "gold" && (
-                      <button
-                        type="button"
-                        title={`同色拿取两枚${colorNames[color]}色宝石`}
-                        aria-label={`同色拿取两枚${colorNames[color]}色宝石`}
-                        disabled={!isMyTurn || busy || game.bank[color] < 4 || game.status !== "active"}
-                        onClick={() => onTakeTwo(color)}
-                      >+2</button>
+                      <em className="land-count" title={`${colorNames[color]}色土地 ${playerBonuses[color]} 块（永久折扣）`}>+{playerBonuses[color]}</em>
                     )}
                   </div>
                 ))}
               </div>
-              <div className="tabletop-inventory-bonus">永久折扣：{GEM_COLORS.map((color) => `${colorNames[color]} ${getPlayerBonuses(player)[color]}`).join(" · ")}</div>
               <div className="tabletop-inventory-assets">
                 <div className="tabletop-inventory-asset-group">
                   <div className="tabletop-inventory-subhead">已获得贵族</div>
@@ -283,10 +287,10 @@ function TabletopView({
                         type="button"
                         className={`tabletop-inventory-card reserved color-${card.bonusColor}`}
                         key={card.id}
-                        title={`${card.level}级预留卡，${card.points}分；点击查看并买入`}
+                        title={`${card.level}级预留卡，${card.points}分${player.hiddenReservedCardIds.includes(card.id) ? "（暗抽，其他玩家看不到）" : ""}；点击查看并买入`}
                         onClick={() => setSelectedCard({ card, source: { kind: "reserved" } })}
                       >
-                        <b>{card.points}</b><i>{colorNames[card.bonusColor]}</i><small>预留</small>
+                        <b>{card.points}</b><i>{colorNames[card.bonusColor]}</i><small>{player.hiddenReservedCardIds.includes(card.id) ? "暗·预留" : "预留"}</small>
                       </button>
                     ))}
                     {player.purchasedCards.length === 0 && player.reservedCards.length === 0 && <span className="tabletop-inventory-empty">尚无发展卡</span>}
@@ -533,23 +537,50 @@ function GameBoard({
                     <strong>{candidate.name}</strong>
                     <span>{candidate.purchasedCards.length} 张发展卡 · {candidate.reservedCards.length} 张预留</span>
                   </div>
-                  <div className="opponent-bonuses" aria-label="各色折扣">
-                    {GEM_COLORS.map((color) => (
-                      <span className={`bonus-dot color-${color}`} key={color} title={`${colorNames[color]}色折扣 ${bonuses[color]}`}>
-                        {bonuses[color] || "·"}
-                      </span>
-                    ))}
-                  </div>
                   <div className="opponent-score"><strong>{scores.get(candidate.id) ?? 0}</strong><span>分</span></div>
                   <div className="opponent-gem-counts" aria-label={`${candidate.name}持有的宝石数量`}>
                     {TOKEN_COLORS.map((color) => (
-                      <span className="opponent-gem-count" key={color} title={`${colorNames[color]}色宝石 ${candidate.gems[color]} 枚`}>
+                      <span
+                        className="opponent-gem-count"
+                        key={color}
+                        title={color === "gold"
+                          ? `金色宝石 ${candidate.gems[color]} 枚`
+                          : `${colorNames[color]}色宝石 ${candidate.gems[color]} 枚，土地 ${bonuses[color]} 块`}
+                      >
                         <i className={`tabletop-hand-crystal color-${color}`} aria-hidden="true" />
                         <span>{colorNames[color]}</span>
                         <strong>{candidate.gems[color]}</strong>
+                        {color !== "gold" && <em className="land-count">+{bonuses[color]}</em>}
                       </span>
                     ))}
                   </div>
+                  {candidate.reservedCards.length > 0 && (
+                    <div className="opponent-reserved" aria-label={`${candidate.name}的预留卡`}>
+                      <span className="opponent-reserved-label">预留</span>
+                      {candidate.reservedCards.map((card) => candidate.hiddenReservedCardIds.includes(card.id) ? (
+                        <span className="opponent-reserved-card hidden" key={card.id} title={`${card.level}级暗抽预留卡，内容不可见`}>
+                          <b>{card.level}级</b><small>暗牌</small>
+                        </span>
+                      ) : (
+                        <span
+                          className={`opponent-reserved-card color-${card.bonusColor}`}
+                          key={card.id}
+                          title={`${card.level}级 · ${card.points}分 · ${colorNames[card.bonusColor]}色折扣；费用 ${GEM_COLORS.filter((color) => card.cost[color] > 0).map((color) => `${colorNames[color]}${card.cost[color]}`).join(" ")}`}
+                        >
+                          <span className="opponent-reserved-head">
+                            <i className={`tabletop-hand-crystal color-${card.bonusColor}`} aria-hidden="true" />
+                            <b>{card.points}<small>分</small></b>
+                            <small>{card.level}级</small>
+                          </span>
+                          <span className="opponent-reserved-cost">
+                            {GEM_COLORS.filter((color) => card.cost[color] > 0).map((color) => (
+                              <i className={`cost-${color}`} key={color}>{colorNames[color]}{card.cost[color]}</i>
+                            ))}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   {member?.connected === false && <span className="offline-tag">离线</span>}
                 </div>
               );

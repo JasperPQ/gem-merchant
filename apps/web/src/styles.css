@@ -351,14 +351,12 @@ button:focus-visible, input:focus-visible, a:focus-visible {
 .opponent-frame::before { inset: 5px; border-radius: 17px; }
 .opponent-felt { border-radius: 13px; padding: 12px 14px 13px; }
 .opponent-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
-.opponent-card { position: relative; min-width: 0; display: grid; grid-template-columns: 31px minmax(0, 1fr) auto auto; align-items: center; gap: 8px; border: 1px solid rgba(235, 220, 185, .35); border-radius: 9px; padding: 10px 12px 9px; color: #eee6d1; background: linear-gradient(110deg, rgba(26, 49, 36, .8), rgba(35, 65, 46, .64)); box-shadow: inset 0 1px 4px rgba(10, 24, 16, .17); }
+.opponent-card { position: relative; min-width: 0; display: grid; grid-template-columns: 31px minmax(0, 1fr) auto; align-items: center; gap: 8px; border: 1px solid rgba(235, 220, 185, .35); border-radius: 9px; padding: 10px 12px 9px; color: #eee6d1; background: linear-gradient(110deg, rgba(26, 49, 36, .8), rgba(35, 65, 46, .64)); box-shadow: inset 0 1px 4px rgba(10, 24, 16, .17); }
 .opponent-card.active-player { border-color: rgba(222, 190, 122, .85); box-shadow: inset 0 1px 4px rgba(10, 24, 16, .17), 0 0 0 1px rgba(222, 190, 122, .35), 0 0 14px rgba(222, 190, 122, .22); }
 .opponent-avatar { width: 31px; height: 31px; flex: 0 0 31px; display: grid; place-items: center; border: 1px solid rgba(225, 203, 150, .5); border-radius: 50%; background: radial-gradient(circle at 35% 30%, #6d5a3b, #3c3122); color: #f1e2bb; font-family: "Noto Serif SC", Georgia, serif; font-size: 12px; font-weight: 600; }
 .opponent-info { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; }
 .opponent-info strong { overflow: hidden; color: #f1e7d0; font-family: "Noto Serif SC", Georgia, serif; font-size: 11px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .opponent-info span { overflow: hidden; color: rgba(222, 214, 191, .67); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
-.opponent-bonuses { display: flex; gap: 2px; }
-.opponent-bonuses .bonus-dot { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25); }
 .opponent-score { display: flex; align-items: baseline; gap: 2px; color: #e9cf91; }
 .opponent-score strong { font-family: "Noto Serif SC", Georgia, serif; font-size: 20px; font-weight: 600; }
 .opponent-score span { color: rgba(224, 213, 186, .69); font-size: 8px; }
@@ -366,6 +364,25 @@ button:focus-visible, input:focus-visible, a:focus-visible {
 .opponent-gem-count { min-width: 0; display: flex; align-items: center; justify-content: center; gap: 3px; border: 1px solid rgba(224, 213, 185, .14); border-radius: 5px; padding: 3px 2px; color: rgba(237, 230, 212, .79); background: rgba(248, 241, 219, .045); font-size: 7px; }
 .opponent-gem-count .tabletop-hand-crystal { width: 12px; height: 12px; }
 .opponent-gem-count strong { color: #fff1d0; font-family: "Noto Serif SC", Georgia, serif; font-size: 10px; }
+.opponent-gem-count .land-count { padding: 1px 3px; font-size: 8px; }
+.opponent-reserved { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: stretch; gap: 4px; border-top: 1px solid rgba(228, 215, 186, .16); padding-top: 7px; }
+.opponent-reserved-label { align-self: center; margin-right: 2px; color: rgba(222, 214, 191, .6); font-size: 8px; }
+.opponent-reserved-card { min-width: 0; display: flex; flex-direction: column; gap: 3px; border: 1px solid rgba(218, 188, 124, .5); border-radius: 5px; padding: 4px 5px; color: #343e36; background: linear-gradient(150deg, #fffdf5, #ece4d0); }
+.opponent-reserved-head { display: flex; align-items: center; gap: 3px; }
+.opponent-reserved-head .tabletop-hand-crystal { width: 11px; height: 11px; }
+.opponent-reserved-head b { color: #36483a; font-family: "Noto Serif SC", Georgia, serif; font-size: 12px; line-height: 1; }
+.opponent-reserved-head b small { margin-left: 1px; font-family: "DM Sans", sans-serif; font-size: 7px; font-weight: 400; }
+.opponent-reserved-head > small { margin-left: auto; color: #96917f; font-size: 7px; }
+.opponent-reserved-cost { display: flex; flex-wrap: wrap; gap: 2px; }
+.opponent-reserved-cost i { border-radius: 3px; padding: 1px 3px; color: #f8f5eb; background: #4e5751; font-size: 8px; font-style: normal; font-weight: 700; }
+.opponent-reserved-cost .cost-white { color: #5c594e; background: #e2ddce; }
+.opponent-reserved-cost .cost-blue { background: #607f94; }
+.opponent-reserved-cost .cost-green { background: #607f61; }
+.opponent-reserved-cost .cost-red { background: #a76558; }
+.opponent-reserved-cost .cost-black { background: #414b45; }
+.opponent-reserved-card.hidden { min-width: 38px; align-items: center; justify-content: center; gap: 1px; border-color: #d5bf8b; color: #e6d4a6; background: repeating-linear-gradient(45deg, #52694e 0 3px, #425c46 3px 6px); }
+.opponent-reserved-card.hidden b { font-size: 9px; }
+.opponent-reserved-card.hidden small { color: rgba(236, 224, 194, .75); font-size: 7px; }
 .offline-tag { position: absolute; right: 8px; top: -7px; border: 1px solid rgba(230, 160, 140, .5); border-radius: 10px; padding: 2px 6px; background: #5b2f27; color: #f3cfc4; font-size: 8px; }
 
 .game-rules { margin-top: 18px; }
@@ -471,7 +488,11 @@ button:focus-visible, input:focus-visible, a:focus-visible {
 .tabletop-bank { grid-column: 1; grid-row: 1 / span 2; min-height: 100%; border: 1px solid rgba(222, 206, 169, 0.28); border-radius: 11px; padding: 12px 10px; background: linear-gradient(160deg, rgba(24, 47, 35, 0.56), rgba(30, 60, 43, 0.45)); box-shadow: inset 0 1px 7px rgba(12, 27, 20, 0.25), 0 5px 12px rgba(15, 33, 23, 0.13); }
 .tabletop-zone-title { display: flex; align-items: baseline; justify-content: space-between; gap: 7px; margin-bottom: 10px; color: #f1e7ce; font-family: "Noto Serif SC", Georgia, serif; font-size: 12px; font-weight: 600; }
 .tabletop-zone-title small { color: rgba(228, 215, 185, 0.59); font-family: "DM Sans", sans-serif; font-size: 7px; font-weight: 500; letter-spacing: 0.11em; }
-.gem-stack-wrap { position: relative; margin-bottom: 4px; }
+.gem-stack-wrap { position: relative; display: flex; align-items: stretch; gap: 3px; margin-bottom: 4px; }
+.gem-stack-wrap > .gem-stack { min-width: 0; flex: 1; }
+.gem-stack-take-two { flex: 0 0 24px; border: 1px solid rgba(235, 218, 174, .35); border-radius: 6px; padding: 0; color: #e9d9af; background: rgba(255, 255, 255, .06); cursor: pointer; font-size: 9px; font-weight: 700; }
+.gem-stack-take-two:hover:not(:disabled) { border-color: #e6ce91; background: rgba(220, 197, 135, .2); }
+.gem-stack-take-two:disabled { cursor: not-allowed; opacity: .3; }
 .gem-stack { width: 100%; min-height: 47px; display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 5px; border: 1px solid transparent; border-radius: 7px; padding: 4px 6px; color: #eee8d9; background: transparent; cursor: pointer; text-align: left; transition: background 140ms ease, border-color 140ms ease, transform 140ms ease; }
 .gem-stack:hover:not(:disabled), .gem-stack:focus-visible { border-color: rgba(236, 217, 176, 0.43); background: rgba(221, 224, 181, 0.11); transform: translateY(-2px); }
 .gem-stack:disabled { cursor: default; opacity: 0.58; }
@@ -573,9 +594,7 @@ button:focus-visible, input:focus-visible, a:focus-visible {
 .tabletop-inventory-gems { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; margin-top: 7px; }
 .inventory-gem { min-width: 0; display: flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid rgba(224, 213, 185, .14); border-radius: 5px; padding: 4px 3px; color: rgba(237, 230, 212, .79); background: rgba(248, 241, 219, .045); font-size: 7px; }
 .inventory-gem strong { color: #fff1d0; font-family: "Noto Serif SC", Georgia, serif; font-size: 11px; }
-.inventory-gem > button { border: 1px solid rgba(235, 218, 174, .3); border-radius: 3px; padding: 2px 3px; color: #e9d9af; background: rgba(255,255,255,.07); cursor: pointer; font-size: 6px; }
-.inventory-gem > button:disabled { cursor: not-allowed; opacity: .36; }
-.tabletop-inventory-bonus { margin-top: 6px; color: rgba(223, 214, 191, .62); font-size: 7px; }
+.land-count { border: 1px solid rgba(222, 190, 122, .45); border-radius: 3px; padding: 1px 4px; color: #ecd59c; background: rgba(191, 155, 83, .16); font-size: 9px; font-style: normal; font-weight: 700; }
 .tabletop-inventory-assets { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 10px; margin-top: 7px; border-top: 1px solid rgba(228, 215, 186, .16); padding-top: 7px; }
 .tabletop-inventory-subhead { display: flex; justify-content: space-between; gap: 5px; margin-bottom: 5px; color: rgba(237, 228, 204, .85); font-size: 7px; font-weight: 600; }
 .tabletop-inventory-subhead span { color: rgba(216, 205, 179, .58); font-size: 6px; font-weight: 400; }
@@ -688,7 +707,6 @@ button.tabletop-inventory-card:hover { background: rgba(248, 243, 222, .17); }
   .opponent-strip { gap: 6px; }
   .opponent-card { grid-template-columns: 27px minmax(0, 1fr) auto; gap: 6px; padding: 8px 7px 7px; }
   .opponent-avatar { width: 27px; height: 27px; flex-basis: 27px; }
-  .opponent-bonuses { display: none; }
   .opponent-frame { padding: 7px; border-radius: 16px; }
   .opponent-frame::before { inset: 4px; border-radius: 12px; }
   .opponent-felt { border-radius: 11px; padding: 10px 8px 8px; }

@@ -3,6 +3,7 @@ import {
 	applyAction,
 	createGame,
 	getPlayerScore,
+	redactGameForViewer,
 	type ColorCounts,
 	type DevelopmentCard,
 	type Noble,
@@ -156,6 +157,42 @@ describe("player actions", () => {
 		});
 		expect(ownerBuysReservedCard.players[0]?.purchasedCards.map((card) => card.id)).toContain(reservedCard.id);
 		expect(ownerBuysReservedCard.players[0]?.reservedCards).toHaveLength(0);
+	});
+
+	it("hides deck-reserved cards and deck contents from other players only", () => {
+		const game = makeGame();
+		const actor = game.players[game.activePlayerIndex]!;
+		const other = game.players.find((candidate) => candidate.id !== actor.id)!;
+		const deckTop = game.decks[2][game.decks[2].length - 1]!;
+		const marketCard = game.market[1][0]!;
+
+		const afterDeckReserve = applyAction(game, actor.id, { type: "reserveCard", source: { kind: "deck", level: 2 } });
+		expect(afterDeckReserve.players.find((p) => p.id === actor.id)?.hiddenReservedCardIds).toEqual([deckTop.id]);
+		const afterMarketReserve = applyAction(afterDeckReserve, other.id, {
+			type: "reserveCard",
+			source: { kind: "market", level: 1, cardId: marketCard.id },
+		});
+
+		const otherView = redactGameForViewer(afterMarketReserve, other.id);
+		const actorSeenByOther = otherView.players.find((p) => p.id === actor.id)!;
+		expect(actorSeenByOther.reservedCards).toHaveLength(1);
+		expect(actorSeenByOther.reservedCards[0]?.level).toBe(2);
+		expect(actorSeenByOther.hiddenReservedCardIds).toEqual([actorSeenByOther.reservedCards[0]?.id]);
+		expect(JSON.stringify(otherView)).not.toContain(`"${deckTop.id}"`);
+		expect(otherView.decks[2]).toHaveLength(afterMarketReserve.decks[2].length);
+		expect(otherView.decks[3].map((card) => card.id)).not.toContain(afterMarketReserve.decks[3][0]?.id);
+
+		const actorView = redactGameForViewer(afterMarketReserve, actor.id);
+		expect(actorView.players.find((p) => p.id === actor.id)?.reservedCards[0]?.id).toBe(deckTop.id);
+		expect(actorView.players.find((p) => p.id === other.id)?.reservedCards[0]?.id).toBe(marketCard.id);
+
+		const afterBuy = applyAction(afterMarketReserve, actor.id, {
+			type: "buyCard",
+			source: { kind: "reserved", cardId: deckTop.id },
+		});
+		const actorAfterBuy = afterBuy.players.find((p) => p.id === actor.id)!;
+		expect(actorAfterBuy.hiddenReservedCardIds).toEqual([]);
+		expect(actorAfterBuy.purchasedCards.map((card) => card.id)).toContain(deckTop.id);
 	});
 
 	it("pays with matching gems first and uses gold for the remaining discounted cost", () => {
