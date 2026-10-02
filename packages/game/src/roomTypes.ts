@@ -38,6 +38,21 @@ export interface JoinRoomPayload {
 	readonly code: string;
 }
 
+/** 初始界面公开展示的房间概况；不含房间码、手牌和聊天内容。 */
+export interface PublicRoomSummary {
+	readonly id: string;
+	readonly status: "waiting" | "playing" | "finished";
+	readonly capacity: 2 | 3 | 4;
+	readonly players: {
+		readonly name: string;
+		readonly isHost: boolean;
+		readonly connected: boolean;
+		readonly score?: number;
+		readonly isActive?: boolean;
+		readonly isWinner?: boolean;
+	}[];
+}
+
 export interface GuestbookEntry {
 	readonly id: string;
 	readonly name: string;
@@ -61,6 +76,7 @@ export interface ClientToServerEvents {
 	"game:action": (action: GameAction, ack: RoomAck<LobbyRoomSnapshot>) => void;
 	"room:chat": (payload: SendRoomChatPayload, ack: RoomAck<void>) => void;
 	"guestbook:get": (ack: RoomAck<GuestbookEntry[]>) => void;
+	"lobby:get": (ack: RoomAck<PublicRoomSummary[]>) => void;
 	"guestbook:post": (payload: SubmitGuestbookEntry, ack: RoomAck<GuestbookEntry[]>) => void;
 }
 
@@ -68,4 +84,5 @@ export interface ServerToClientEvents {
 	"room:updated": (room: LobbyRoomSnapshot) => void;
 	"room:error": (message: string) => void;
 	"guestbook:updated": (entries: GuestbookEntry[]) => void;
+	"lobby:updated": (rooms: PublicRoomSummary[]) => void;
 }

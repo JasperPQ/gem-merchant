@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import type { GameAction, GuestbookEntry, LobbyRoomSnapshot } from "@gem-merchant/game";
+import type { GameAction, GuestbookEntry, LobbyRoomSnapshot, PublicRoomSummary } from "@gem-merchant/game";
 import GameBoard from "./GameBoard.js";
 import GameRules from "./GameRules.js";
+import OnlineRooms from "./OnlineRooms.js";
 import RoomChat from "./RoomChat.js";
 import { socket } from "./socket.js";
 
@@ -30,6 +31,7 @@ function App() {
   const [guestbookBusy, setGuestbookBusy] = useState(false);
   const [guestbookError, setGuestbookError] = useState("");
   const [guestbookNotice, setGuestbookNotice] = useState("");
+  const [lobbyRooms, setLobbyRooms] = useState<PublicRoomSummary[]>([]);
 
   useEffect(() => {
     const loadGuestbook = () => {
@@ -37,17 +39,22 @@ function App() {
       socket.emit("guestbook:get", (response) => {
         if (response.ok) setGuestbookEntries(response.data);
       });
+      socket.emit("lobby:get", (response) => {
+        if (response.ok) setLobbyRooms(response.data);
+      });
     };
     const handleDisconnect = () => setConnected(false);
     const handleRoomUpdate = (snapshot: LobbyRoomSnapshot) => setRoom(snapshot);
     const handleRoomError = (message: string) => setError(message);
     const handleGuestbookUpdate = (entries: GuestbookEntry[]) => setGuestbookEntries(entries);
+    const handleLobbyUpdate = (rooms: PublicRoomSummary[]) => setLobbyRooms(rooms);
 
     socket.on("connect", loadGuestbook);
     socket.on("disconnect", handleDisconnect);
     socket.on("room:updated", handleRoomUpdate);
     socket.on("room:error", handleRoomError);
     socket.on("guestbook:updated", handleGuestbookUpdate);
+    socket.on("lobby:updated", handleLobbyUpdate);
     socket.connect();
 
     return () => {
@@ -56,6 +63,7 @@ function App() {
       socket.off("room:updated", handleRoomUpdate);
       socket.off("room:error", handleRoomError);
       socket.off("guestbook:updated", handleGuestbookUpdate);
+      socket.off("lobby:updated", handleLobbyUpdate);
       socket.disconnect();
     };
   }, []);
@@ -79,7 +87,9 @@ function App() {
         return;
       }
       setRoom(response.data);
-      setNotice(mode === "create" ? "房间已创建，可以邀请朋友加入。" : "已加入房间。" );
+      setNotice(mode === "create"
+        ? "房间已创建，可以邀请朋友加入。"
+        : response.data.status === "playing" ? "已回到对局，继续游戏吧。" : "已加入房间。");
     };
 
     if (mode === "create") {
@@ -289,7 +299,7 @@ function App() {
                   maxLength={6}
                   required
                 />
-                <p className="field-hint">房间码为 6 位字母或数字，不含易混淆字符。</p>
+                <p className="field-hint">房间码为 6 位字母或数字，不含易混淆字符。掉线后用原昵称和房间码可回到进行中的对局。</p>
               </>
             )}
 
@@ -312,6 +322,7 @@ function App() {
         <span className="how-divider" />
         <div className="how-item"><span className="how-number">03</span><span>开始对局</span></div>
       </section>
+      <OnlineRooms rooms={lobbyRooms} connected={connected} />
       <Guestbook
         entries={guestbookEntries}
         name={guestName}

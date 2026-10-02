@@ -7,6 +7,7 @@ import { Server } from "socket.io";
 import {
   applyAction,
   createGame,
+  getPlayerScore,
   redactGameForViewer,
   type ClientToServerEvents,
   type CreateRoomPayload,
@@ -16,6 +17,7 @@ import {
   type LobbyMember,
   type LobbyRoomSnapshot,
   type Noble,
+  type PublicRoomSummary,
   type RoomChatMessage,
   type ServerToClientEvents,
   type SubmitGuestbookEntry,
@@ -23,6 +25,8 @@ import {
 
 interface RoomState {
   code: string;
+  /** 对外展示用的随机标识，不泄露房间码。 */
+  publicId: string;
   capacity: 2 | 3 | 4;
   status: "waiting" | "playing";
   ownerId: string;
@@ -183,11 +187,45 @@ function snapshot(room: RoomState, viewerId: string): LobbyRoomSnapshot {
   };
 }
 
+function roomSummaries(): PublicRoomSummary[] {
+  const order = { playing: 0, waiting: 1, finished: 2 } as const;
+  return [...rooms.values()]
+    .map((room): PublicRoomSummary => {
+      const game = room.game;
+      const status = room.status === "waiting" ? "waiting" : game?.status === "finished" ? "finished" : "playing";
+      const activeId = game?.status === "active" ? game.players[game.activePlayerIndex]?.id : undefined;
+      return {
+        id: room.publicId,
+        status,
+        capacity: room.capacity,
+        players: room.members.map((member) => {
+          const player = game?.players.find((candidate) => candidate.id === member.id);
+          return {
+            name: member.name,
+            isHost: member.isHost,
+            connected: member.connected,
+            ...(player ? {
+              score: getPlayerScore(player),
+              isActive: player.id === activeId,
+              isWinner: game!.winnerIds.includes(player.id),
+            } : {}),
+          };
+        }),
+      };
+    })
+    .sort((left, right) => order[left.status] - order[right.status]);
+}
+
+function emitLobbyUpdate(): void {
+  io.emit("lobby:updated", roomSummaries());
+}
+
 function emitRoomUpdate(room: RoomState): void {
   // 每位成员单独发送，隐藏牌库和他人暗抽预留卡的内容。
   for (const member of room.members) {
     io.to(member.id).emit("room:updated", snapshot(room, member.id));
   }
+  emitLobbyUpdate();
 }
 
 function findRoomForSocket(socketId: string): RoomState | undefined {
@@ -213,6 +251,7 @@ function removeWaitingMember(socketId: string): void {
   room.members = room.members.filter((member) => member.id !== socketId);
   if (room.members.length === 0) {
     rooms.delete(code);
+    emitLobbyUpdate();
     return;
   }
   if (room.ownerId === socketId) {
@@ -225,11 +264,32 @@ function removeWaitingMember(socketId: string): void {
   emitRoomUpdate(room);
 }
 
+/** 把离线玩家的座位交给新的连接，保留其对局状态。 */
+function reassignMember(room: RoomState, previousId: string, nextId: string): void {
+  const swap = (id: string) => (id === previousId ? nextId : id);
+  room.members = room.members.map((member) =>
+    member.id === previousId ? { ...member, id: nextId, connected: true } : member,
+  );
+  room.ownerId = swap(room.ownerId);
+  room.chat = room.chat.map((entry) => ({ ...entry, senderId: swap(entry.senderId) }));
+  if (room.game) {
+    room.game = {
+      ...room.game,
+      players: room.game.players.map((player) => ({ ...player, id: swap(player.id) })),
+      winnerIds: room.game.winnerIds.map(swap),
+    };
+  }
+}
+
 function invalidNameMessage(payload: CreateRoomPayload | JoinRoomPayload): string | null {
   return normalizeName(payload?.name) ? null : "昵称长度需为 2–18 个字符。";
 }
 
 io.on("connection", (socket) => {
+  socket.on("lobby:get", (ack) => {
+    ack({ ok: true, data: roomSummaries() });
+  });
+
   socket.on("guestbook:get", (ack) => {
     ack({ ok: true, data: getGuestbookEntries() });
   });
@@ -304,6 +364,7 @@ io.on("connection", (socket) => {
 
     const room: RoomState = {
       code,
+      publicId: randomUUID(),
       capacity: payload.capacity,
       status: "waiting",
       ownerId: socket.id,
@@ -337,18 +398,37 @@ io.on("connection", (socket) => {
       ack({ ok: false, error: "找不到这个房间，请检查房间码。" });
       return;
     }
+    const name = normalizeName(payload.name)!;
     if (room.status !== "waiting") {
-      ack({ ok: false, error: "对局已经开始，暂时不能加入。" });
+      // 对局中只允许离线玩家用原昵称回到自己的座位。
+      const seat = room.members.find((member) => member.name === name);
+      if (!seat) {
+        ack({ ok: false, error: "对局已经开始，只有原房间玩家可以用原昵称重新加入。" });
+        return;
+      }
+      if (seat.connected) {
+        ack({ ok: false, error: "这个昵称的玩家仍在线，无法重新加入。" });
+        return;
+      }
+      reassignMember(room, seat.id, socket.id);
+      socketRooms.set(socket.id, code);
+      void socket.join(code);
+      ack({ ok: true, data: snapshot(room, socket.id) });
+      emitRoomUpdate(room);
       return;
     }
     if (room.members.length >= room.capacity) {
       ack({ ok: false, error: "房间已满。" });
       return;
     }
+    if (room.members.some((member) => member.name === name)) {
+      ack({ ok: false, error: "房间里已有同名玩家，请换一个昵称。" });
+      return;
+    }
 
     const member: LobbyMember = {
       id: socket.id,
-      name: normalizeName(payload.name)!,
+      name,
       isHost: false,
       connected: true,
     };

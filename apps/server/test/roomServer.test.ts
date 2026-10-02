@@ -10,6 +10,7 @@ import type {
   GameAction,
   GuestbookEntry,
   LobbyRoomSnapshot,
+  PublicRoomSummary,
   ServerToClientEvents,
   SubmitGuestbookEntry,
 } from "@gem-merchant/game";
@@ -199,6 +200,97 @@ describe("Socket.IO lobby and game actions", () => {
     expect(roomAfterTransfer.members).toHaveLength(1);
     expect(roomAfterTransfer.members[0]?.id).toBe(guest.id);
     expect(roomAfterTransfer.members[0]?.isHost).toBe(true);
+  });
+
+  it("lets an offline player rejoin a running game with the same nickname", async () => {
+    const join = (client: TestSocket, name: string, code: string) =>
+      new Promise<AckResponse<LobbyRoomSnapshot>>((resolve) => client.emit("room:join", { name, code }, resolve));
+
+    const host = await connectClient();
+    const created = await new Promise<AckResponse<LobbyRoomSnapshot>>((resolve) => {
+      host.emit("room:create", { name: "Rejoin Host", capacity: 3 }, resolve);
+    });
+    if (!created.ok) throw new Error(created.error);
+    const code = created.data.code;
+
+    const guest = await connectClient();
+    expect((await join(guest, "Rejoin Guest", code)).ok).toBe(true);
+    const duplicate = await join(await connectClient(), "Rejoin Guest", code);
+    expect(duplicate.ok).toBe(false);
+
+    const started = await new Promise<AckResponse<LobbyRoomSnapshot>>((resolve) => host.emit("room:start", resolve));
+    if (!started.ok) throw new Error(started.error);
+    const guestBefore = started.data.game!.players.find((player) => player.name === "Rejoin Guest")!;
+
+    const offlineUpdate = new Promise<LobbyRoomSnapshot>((resolve) => {
+      const handler = (room: LobbyRoomSnapshot) => {
+        if (room.members.some((member) => member.name === "Rejoin Guest" && !member.connected)) {
+          host.off("room:updated", handler);
+          resolve(room);
+        }
+      };
+      host.on("room:updated", handler);
+    });
+    guest.disconnect();
+    await offlineUpdate;
+
+    const stranger = await join(await connectClient(), "Someone Else", code);
+    expect(stranger.ok).toBe(false);
+    const impostor = await join(await connectClient(), "Rejoin Host", code);
+    expect(impostor.ok).toBe(false);
+
+    const returning = await connectClient();
+    const hostSeesReturn = new Promise<LobbyRoomSnapshot>((resolve) => {
+      const handler = (room: LobbyRoomSnapshot) => {
+        if (room.members.some((member) => member.id === returning.id)) {
+          host.off("room:updated", handler);
+          resolve(room);
+        }
+      };
+      host.on("room:updated", handler);
+    });
+    const rejoined = await join(returning, "Rejoin Guest", code);
+    if (!rejoined.ok) throw new Error(rejoined.error);
+    expect(rejoined.data.status).toBe("playing");
+    const seat = rejoined.data.game!.players.find((player) => player.name === "Rejoin Guest")!;
+    expect(seat.id).toBe(returning.id);
+    expect(seat.gems).toEqual(guestBefore.gems);
+    expect(rejoined.data.game!.activePlayerIndex).toBe(started.data.game!.activePlayerIndex);
+    const hostView = await hostSeesReturn;
+    expect(hostView.members.find((member) => member.name === "Rejoin Guest")).toMatchObject({ id: returning.id, connected: true });
+
+    const active = rejoined.data.game!.players[rejoined.data.game!.activePlayerIndex]!;
+    const actor = active.id === returning.id ? returning : host;
+    const acted = await emitAction(actor, { type: "takeGems", colors: ["white", "blue", "green"] });
+    expect(acted.ok).toBe(true);
+  });
+
+  it("publishes live room summaries to visitors without room codes", async () => {
+    const visitor = await connectClient();
+    const host = await connectClient();
+    const visitorUpdate = new Promise<PublicRoomSummary[]>((resolve) => {
+      const handler = (rooms: PublicRoomSummary[]) => {
+        if (rooms.some((room) => room.players.some((player) => player.name === "Lobby Host"))) {
+          visitor.off("lobby:updated", handler);
+          resolve(rooms);
+        }
+      };
+      visitor.on("lobby:updated", handler);
+    });
+    const created = await new Promise<AckResponse<LobbyRoomSnapshot>>((resolve) => {
+      host.emit("room:create", { name: "Lobby Host", capacity: 2 }, resolve);
+    });
+    if (!created.ok) throw new Error(created.error);
+
+    const pushed = await visitorUpdate;
+    const summary = pushed.find((room) => room.players.some((player) => player.name === "Lobby Host"));
+    expect(summary).toMatchObject({ status: "waiting", capacity: 2 });
+    expect(summary?.players[0]).toMatchObject({ name: "Lobby Host", isHost: true, connected: true });
+    expect(JSON.stringify(pushed)).not.toContain(created.data.code);
+
+    const fetched = await new Promise<AckResponse<PublicRoomSummary[]>>((resolve) => visitor.emit("lobby:get", resolve));
+    if (!fetched.ok) throw new Error(fetched.error);
+    expect(fetched.data.some((room) => room.id === summary?.id)).toBe(true);
   });
 
   it("broadcasts room chat only to members and validates messages", async () => {

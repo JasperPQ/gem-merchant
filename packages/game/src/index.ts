@@ -28,6 +28,7 @@ export type {
 	JoinRoomPayload,
 	LobbyMember,
 	LobbyRoomSnapshot,
+	PublicRoomSummary,
 	RoomChatMessage,
 	SendRoomChatPayload,
 	ServerToClientEvents,
