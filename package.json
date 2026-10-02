@@ -1,0 +1,24 @@
+{
+  "name": "gem-merchant",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "build:game": "npm run build -w @gem-merchant/game",
+    "test": "vitest run",
+    "typecheck": "tsc -b && npm run typecheck -w @gem-merchant/server && npm run typecheck -w @gem-merchant/web",
+    "predev": "npm run build:game",
+    "dev": "concurrently -k -n server,web \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:server": "npm run dev -w @gem-merchant/server",
+    "dev:web": "npm run dev -w @gem-merchant/web",
+    "import:cards": "node scripts/import-cards-csv.mjs",
+    "build": "npm run build:game && npm run build -w @gem-merchant/web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "typescript": "^5.9.3",
+    "tsx": "^4.20.5",
+    "vitest": "^3.2.4"
+  }
+}
