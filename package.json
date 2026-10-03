@@ -10,6 +10,7 @@
     "typecheck": "tsc -b && npm run typecheck -w @gem-merchant/server && npm run typecheck -w @gem-merchant/web",
     "predev": "npm run build:game",
     "dev": "concurrently -k -n server,web \"npm:dev:server\" \"npm:dev:web\"",
+    "start": "npm run build:game && npm run start -w @gem-merchant/server",
     "dev:server": "npm run dev -w @gem-merchant/server",
     "dev:web": "npm run dev -w @gem-merchant/web",
     "import:cards": "node scripts/import-cards-csv.mjs",
