@@ -10,6 +10,26 @@ type EntryMode = "create" | "join";
 type Capacity = 2 | 3 | 4;
 
 const validRoomCode = /^[A-HJ-NP-Z2-9]{6}$/;
+const ADMIN_TOKEN_KEY = "gem-merchant-admin-token";
+// 在网址后加 ?admin 才显示管理员入口。
+const adminEntryEnabled = new URLSearchParams(window.location.search).has("admin");
+
+function readStoredAdminToken(): string {
+  try {
+    return sessionStorage.getItem(ADMIN_TOKEN_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function storeAdminToken(token: string): void {
+  try {
+    if (token) sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
+    else sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+  } catch {
+    // 存储不可用时仅在本页有效。
+  }
+}
 
 function normalizeRoomCode(value: string): string {
   return value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, "").slice(0, 6);
@@ -363,6 +383,37 @@ function Guestbook({
   onMessageChange: (value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
+  const [adminToken, setAdminToken] = useState(() => (adminEntryEnabled ? readStoredAdminToken() : ""));
+  const [adminError, setAdminError] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  function updateAdminToken(token: string) {
+    setAdminToken(token);
+    storeAdminToken(token);
+  }
+
+  function loginAdmin(token: string) {
+    setAdminError("");
+    socket.emit("admin:verify", token, (response) => {
+      if (!response.ok) {
+        setAdminError(response.error);
+        return;
+      }
+      updateAdminToken(token);
+    });
+  }
+
+  function deleteEntry(entry: GuestbookEntry) {
+    if (!window.confirm(`确定删除 ${entry.name} 的这条留言吗？删除后无法恢复。`)) return;
+    setAdminError("");
+    setDeletingId(entry.id);
+    // 删除成功后服务端会广播 guestbook:updated，列表随之刷新。
+    socket.emit("guestbook:delete", { id: entry.id, token: adminToken }, (response) => {
+      setDeletingId(null);
+      if (!response.ok) setAdminError(response.error);
+    });
+  }
+
   return (
     <section className="guestbook" aria-labelledby="guestbook-title">
       <div className="guestbook-heading">
@@ -373,6 +424,16 @@ function Guestbook({
         </div>
         <span className="guestbook-count">{entries.length} 条留言</span>
       </div>
+
+      {adminEntryEnabled && (
+        <GuestbookAdminBar
+          token={adminToken}
+          connected={connected}
+          error={adminError}
+          onLogin={loginAdmin}
+          onLogout={() => updateAdminToken("")}
+        />
+      )}
 
       <div className="guestbook-layout">
         <form className="guestbook-form" onSubmit={onSubmit}>
@@ -413,6 +474,16 @@ function Guestbook({
                 <div className="guestbook-entry-meta">
                   <strong>{entry.name}</strong>
                   <time dateTime={entry.createdAt}>{formatGuestbookDate(entry.createdAt)}</time>
+                  {adminToken && (
+                    <button
+                      className="guestbook-delete"
+                      type="button"
+                      disabled={!connected || deletingId === entry.id}
+                      onClick={() => deleteEntry(entry)}
+                    >
+                      {deletingId === entry.id ? "删除中…" : "删除"}
+                    </button>
+                  )}
                 </div>
                 <p>{entry.message}</p>
               </div>
@@ -427,6 +498,53 @@ function Guestbook({
         </div>
       </div>
     </section>
+  );
+}
+
+function GuestbookAdminBar({
+  token,
+  connected,
+  error,
+  onLogin,
+  onLogout,
+}: {
+  token: string;
+  connected: boolean;
+  error: string;
+  onLogin: (token: string) => void;
+  onLogout: () => void;
+}) {
+  const [input, setInput] = useState("");
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (input.trim()) onLogin(input.trim());
+    setInput("");
+  }
+
+  return (
+    <div className="guestbook-admin">
+      {token ? (
+        <div className="guestbook-admin-row">
+          <span>管理员模式：可删除任意留言</span>
+          <button className="guestbook-admin-button" type="button" onClick={onLogout}>退出管理</button>
+        </div>
+      ) : (
+        <form className="guestbook-admin-row" onSubmit={submit}>
+          <input
+            className="text-input"
+            type="password"
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            placeholder="管理员口令"
+            autoComplete="current-password"
+            aria-label="管理员口令"
+          />
+          <button className="guestbook-admin-button" type="submit" disabled={!connected || !input.trim()}>进入管理</button>
+        </form>
+      )}
+      {error && <p className="feedback feedback-error" role="alert">{error}</p>}
+    </div>
   );
 }
 

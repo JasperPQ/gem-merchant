@@ -24,6 +24,7 @@ export type {
 	AckResponse,
 	ClientToServerEvents,
 	CreateRoomPayload,
+	DeleteGuestbookEntry,
 	GuestbookEntry,
 	JoinRoomPayload,
 	LobbyMember,

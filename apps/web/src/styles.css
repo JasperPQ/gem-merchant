@@ -300,7 +300,15 @@ button:focus-visible, input:focus-visible, a:focus-visible {
 .guestbook-entry-content { min-width: 0; flex: 1; }
 .guestbook-entry-meta { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .guestbook-entry-meta strong { color: #4c5b50; font-size: 10px; font-weight: 700; }
-.guestbook-entry-meta time { flex: 0 0 auto; color: #a2a39a; font-size: 8px; }
+.guestbook-entry-meta time { flex: 0 0 auto; margin-left: auto; color: #a2a39a; font-size: 8px; }
+.guestbook-delete { flex: 0 0 auto; border: 1px solid #e8cfc8; border-radius: 6px; padding: 2px 7px; color: #a5574a; background: #fbf3f0; font: inherit; font-size: 8px; cursor: pointer; }
+.guestbook-delete:hover:not(:disabled) { background: #f6e3dd; }
+.guestbook-delete:disabled { opacity: 0.55; cursor: default; }
+.guestbook-admin { margin-bottom: 14px; border: 1px dashed #dcc9a6; border-radius: 12px; padding: 10px 12px; background: rgba(251, 246, 236, 0.7); }
+.guestbook-admin-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: #8a6f45; font-size: 10px; }
+.guestbook-admin-row .text-input { flex: 1; max-width: 260px; height: 34px; }
+.guestbook-admin-button { flex: 0 0 auto; border: 1px solid #d9c49d; border-radius: 8px; padding: 7px 11px; color: #7c6136; background: #fffdf8; font: inherit; font-size: 10px; cursor: pointer; }
+.guestbook-admin-button:disabled { opacity: 0.55; cursor: default; }
 .guestbook-entry-content p { margin: 6px 0 0; color: #70786f; font-size: 10px; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; }
 .guestbook-empty { min-height: 190px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #a3a398; text-align: center; }
 .guestbook-empty > span { color: #b79b68; font-size: 21px; }

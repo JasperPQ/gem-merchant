@@ -65,6 +65,11 @@ export interface SubmitGuestbookEntry {
 	readonly message: string;
 }
 
+export interface DeleteGuestbookEntry {
+	readonly id: string;
+	readonly token: string;
+}
+
 export type AckResponse<T> = { ok: true; data: T } | { ok: false; error: string };
 export type RoomAck<T> = (response: AckResponse<T>) => void;
 
@@ -78,6 +83,8 @@ export interface ClientToServerEvents {
 	"guestbook:get": (ack: RoomAck<GuestbookEntry[]>) => void;
 	"lobby:get": (ack: RoomAck<PublicRoomSummary[]>) => void;
 	"guestbook:post": (payload: SubmitGuestbookEntry, ack: RoomAck<GuestbookEntry[]>) => void;
+	"admin:verify": (token: string, ack: RoomAck<void>) => void;
+	"guestbook:delete": (payload: DeleteGuestbookEntry, ack: RoomAck<GuestbookEntry[]>) => void;
 }
 
 export interface ServerToClientEvents {

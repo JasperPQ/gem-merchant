@@ -1,4 +1,4 @@
-import { randomInt, randomUUID } from "node:crypto";
+import { createHash, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, resolve } from "node:path";
@@ -11,6 +11,7 @@ import {
   redactGameForViewer,
   type ClientToServerEvents,
   type CreateRoomPayload,
+  type DeleteGuestbookEntry,
   type DevelopmentCard,
   type GuestbookEntry,
   type JoinRoomPayload,
@@ -39,6 +40,7 @@ const ROOM_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const ROOM_CODE_LENGTH = 6;
 const GUESTBOOK_LIMIT = 200;
 const GUESTBOOK_RATE_LIMIT_MS = 10_000;
+const ADMIN_RETRY_DELAY_MS = 2_000;
 const ROOM_CHAT_LIMIT = 100;
 const ROOM_CHAT_MAX_LENGTH = 200;
 const ROOM_CHAT_RATE_LIMIT_MS = 1_000;
@@ -46,6 +48,7 @@ const rooms = new Map<string, RoomState>();
 const socketRooms = new Map<string, string>();
 const guestbookPostTimes = new Map<string, number>();
 const roomChatTimes = new Map<string, number>();
+const adminFailureTimes = new Map<string, number>();
 
 const cardsFile = JSON.parse(
   readFileSync(new URL("../../../data/cards.json", import.meta.url), "utf8"),
@@ -85,6 +88,25 @@ function saveGuestbook(): void {
   const temporaryPath = `${guestbookPath}.${process.pid}.tmp`;
   writeFileSync(temporaryPath, `${JSON.stringify({ entries: guestbookEntries }, null, 2)}\n`, "utf8");
   renameSync(temporaryPath, guestbookPath);
+}
+
+/** 未配置 ADMIN_TOKEN 时管理功能关闭。 */
+const adminTokenHash = process.env.ADMIN_TOKEN
+  ? createHash("sha256").update(process.env.ADMIN_TOKEN).digest()
+  : null;
+
+function checkAdminToken(socketId: string, token: unknown): string | null {
+  if (!adminTokenHash) return "管理功能未启用。";
+  const now = Date.now();
+  if (now - (adminFailureTimes.get(socketId) ?? 0) < ADMIN_RETRY_DELAY_MS) {
+    return "尝试太频繁了，请稍后再试。";
+  }
+  const tokenHash = createHash("sha256").update(typeof token === "string" ? token : "").digest();
+  if (!timingSafeEqual(tokenHash, adminTokenHash)) {
+    adminFailureTimes.set(socketId, now);
+    return "管理员口令不正确。";
+  }
+  return null;
 }
 
 function normalizeGuestName(value: unknown): string | null {
@@ -334,6 +356,36 @@ io.on("connection", (socket) => {
     io.emit("guestbook:updated", entries);
   });
 
+  socket.on("admin:verify", (token, ack) => {
+    const error = checkAdminToken(socket.id, token);
+    ack(error ? { ok: false, error } : { ok: true, data: undefined });
+  });
+
+  socket.on("guestbook:delete", (payload: DeleteGuestbookEntry, ack) => {
+    const error = checkAdminToken(socket.id, payload?.token);
+    if (error) {
+      ack({ ok: false, error });
+      return;
+    }
+    const previousEntries = guestbookEntries;
+    guestbookEntries = guestbookEntries.filter((entry) => entry.id !== payload.id);
+    if (guestbookEntries.length === previousEntries.length) {
+      ack({ ok: false, error: "这条留言已不存在。" });
+      return;
+    }
+    try {
+      saveGuestbook();
+    } catch {
+      guestbookEntries = previousEntries;
+      ack({ ok: false, error: "删除暂时无法保存，请稍后重试。" });
+      return;
+    }
+
+    const entries = getGuestbookEntries();
+    ack({ ok: true, data: entries });
+    io.emit("guestbook:updated", entries);
+  });
+
   socket.on("room:create", (payload, ack) => {
     if (socketRooms.has(socket.id)) {
       ack({ ok: false, error: "请先离开当前房间，再创建新房间。" });
@@ -540,6 +592,7 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     guestbookPostTimes.delete(socket.id);
+    adminFailureTimes.delete(socket.id);
     roomChatTimes.delete(socket.id);
     removeWaitingMember(socket.id);
   });
