@@ -4,6 +4,7 @@ import {
 	createGame,
 	getPlayerScore,
 	redactGameForViewer,
+	skipTurn,
 	type ColorCounts,
 	type DevelopmentCard,
 	type Noble,
@@ -238,6 +239,28 @@ describe("player actions", () => {
 		const next = applyAction(choiceState, "p1", { type: "chooseNoble", nobleId: "white" });
 		expect(next.players[0]?.nobles.map((noble) => noble.id)).toEqual(["white"]);
 		expect(next.noblesAvailable.map((noble) => noble.id)).toContain("blue");
+		expect(next.pendingNobleIds).toEqual([]);
+		expect(next.players[next.activePlayerIndex]?.id).toBe("p2");
+	});
+
+	it("skips a timed-out turn without changing anyone's holdings", () => {
+		const game = makeGame();
+		const next = skipTurn(game);
+		expect(next.players[next.activePlayerIndex]?.id).toBe("p2");
+		expect(next.players).toEqual(game.players);
+		expect(next.bank).toEqual(game.bank);
+		expect(game.activePlayerIndex).toBe(0);
+	});
+
+	it("claims the first eligible noble when a pending choice times out", () => {
+		const game = makeGame([makeNoble("white", { white: 1 }), makeNoble("blue", { blue: 1 }), makeNoble("safe")]);
+		game.players[0]!.purchasedCards.push(
+			makeCard("white-bonus", 1, { bonusColor: "white" }),
+			makeCard("blue-bonus", 1, { bonusColor: "blue" }),
+		);
+		const choiceState = applyAction(game, "p1", { type: "takeGems", colors: ["white", "blue", "green"] });
+		const next = skipTurn(choiceState);
+		expect(next.players[0]?.nobles.map((noble) => noble.id)).toEqual([choiceState.pendingNobleIds[0]]);
 		expect(next.pendingNobleIds).toEqual([]);
 		expect(next.players[next.activePlayerIndex]?.id).toBe("p2");
 	});

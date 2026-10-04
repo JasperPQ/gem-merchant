@@ -459,6 +459,37 @@ describe("Socket.IO lobby and game actions", () => {
       expect(rejoin.data.members.map((member) => member.name)).toEqual(["Quick Host", "Late Visitor"]);
     });
 
+    it("lets only the host set the turn time before the game starts", async () => {
+      const host = await connectClient();
+      const created = await new Promise<AckResponse<LobbyRoomSnapshot>>((resolve) => host.emit("room:create", { name: "Clock Host", capacity: 2 }, resolve));
+      if (!created.ok) throw new Error(created.error);
+      expect(created.data.turnSeconds).toBe(60);
+      const guest = await connectClient();
+      await joinRoom(guest, "Clock Guest", created.data.code);
+      expect((await emitAck(guest, "room:turnSeconds", 45)).ok).toBe(false);
+      expect((await emitAck(host, "room:turnSeconds", 30)).ok).toBe(false);
+      const updated = waitForRoomUpdate(guest);
+      expect((await emitAck(host, "room:turnSeconds", 120)).ok).toBe(true);
+      expect((await updated).turnSeconds).toBe(120);
+      const started = await emitAck<LobbyRoomSnapshot>(host, "room:start");
+      if (!started.ok) throw new Error(started.error);
+      expect(started.data.turnRemainingMs).toBeGreaterThan(119_000);
+      expect((await emitAck(host, "room:turnSeconds", 45)).ok).toBe(false);
+    });
+
+    it("skips the active player when their turn times out and restarts the clock", async () => {
+      const { code, clients: table } = await startedRoom(["Idle Host", "Next Guest"]);
+      const skipped = new Promise<LobbyRoomSnapshot>((resolve) => {
+        table[1]!.on("room:updated", (room) => {
+          if (room.game && room.game.activePlayerIndex !== room.game.startingPlayerIndex) resolve(room);
+        });
+      });
+      testHooks.expireTurn(code);
+      const room = await skipped;
+      expect(room.game!.players.every((player) => player.purchasedCards.length === 0)).toBe(true);
+      expect(room.turnRemainingMs).toBeGreaterThan(55_000);
+    });
+
     it("lets only the host kick players in the lobby and dissolve the room", async () => {
       const host = await connectClient();
       const created = await new Promise<AckResponse<LobbyRoomSnapshot>>((resolve) => host.emit("room:create", { name: "Boss", capacity: 4 }, resolve));

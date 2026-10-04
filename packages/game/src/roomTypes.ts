@@ -1,5 +1,9 @@
 import type { GameAction, GameState } from "./types.js";
 
+/** 房主可选的每回合行动时长（秒）。 */
+export const TURN_SECONDS_OPTIONS = [45, 60, 120] as const;
+export type TurnSeconds = (typeof TURN_SECONDS_OPTIONS)[number];
+
 export interface LobbyMember {
 	readonly id: string;
 	readonly name: string;
@@ -14,6 +18,10 @@ export interface LobbyRoomSnapshot {
 	readonly members: LobbyMember[];
 	readonly chat: RoomChatMessage[];
 	readonly game?: GameState;
+	/** 每位玩家每回合的行动时长（秒），等待大厅里由房主设置。 */
+	readonly turnSeconds: TurnSeconds;
+	/** 当前回合剩余的毫秒数（发送时）；超时自动跳过该玩家。 */
+	readonly turnRemainingMs?: number;
 	/** 整轮结束后的「是否继续」投票；remainingMs 为发送时剩余的毫秒数。 */
 	readonly rematch?: RematchState;
 	/** 当前在语音里的成员。 */
@@ -87,6 +95,7 @@ export interface ClientToServerEvents {
 	"room:join": (payload: JoinRoomPayload, ack: RoomAck<LobbyRoomSnapshot>) => void;
 	"room:start": (ack: RoomAck<LobbyRoomSnapshot>) => void;
 	"room:leave": (ack: RoomAck<void>) => void;
+	"room:turnSeconds": (seconds: TurnSeconds, ack: RoomAck<void>) => void;
 	"game:action": (action: GameAction, ack: RoomAck<LobbyRoomSnapshot>) => void;
 	"room:chat": (payload: SendRoomChatPayload, ack: RoomAck<void>) => void;
 	"lobby:get": (ack: RoomAck<PublicRoomSummary[]>) => void;

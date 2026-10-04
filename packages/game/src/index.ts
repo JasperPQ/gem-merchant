@@ -1,4 +1,5 @@
-export { applyAction, createGame, getPlayerBonuses, getPlayerScore, getRemainingCost, redactGameForViewer } from "./engine.js";
+export { applyAction, createGame, getPlayerBonuses, getPlayerScore, getRemainingCost, redactGameForViewer, skipTurn } from "./engine.js";
+export { TURN_SECONDS_OPTIONS } from "./roomTypes.js";
 export {
 	CARD_LEVELS,
 	GEM_COLORS,
@@ -29,6 +30,7 @@ export type {
 	LobbyRoomSnapshot,
 	PublicRoomSummary,
 	RematchState,
+	TurnSeconds,
 	IceServerConfig,
 	VoiceParticipant,
 	VoiceSignal,

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import type { GameAction, LobbyRoomSnapshot, PublicRoomSummary } from "@gem-merchant/game";
+import { TURN_SECONDS_OPTIONS, type GameAction, type LobbyRoomSnapshot, type PublicRoomSummary, type TurnSeconds } from "@gem-merchant/game";
 import GameBoard from "./GameBoard.js";
 import GameRules from "./GameRules.js";
 import OnlineRooms from "./OnlineRooms.js";
@@ -160,6 +160,7 @@ function App() {
   }
 
   const kickMember = (memberId: string) => roomCommand((ack) => socket.emit("room:kick", memberId, ack));
+  const setTurnSeconds = (seconds: TurnSeconds) => roomCommand((ack) => socket.emit("room:turnSeconds", seconds, ack));
   const voteRematch = (accept: boolean) => roomCommand((ack) => socket.emit("room:rematch", accept, ack));
   function dissolveRoom() {
     if (!window.confirm("确定解散房间吗？所有玩家都会被移出，当前对局也会结束。")) return;
@@ -212,6 +213,7 @@ function App() {
           onLeave={leaveRoom}
           onStart={startGame}
           onKick={kickMember}
+          onTurnSeconds={setTurnSeconds}
           onDissolve={dissolveRoom}
         />
         <RoomChat room={room} voice={voice} />
@@ -379,6 +381,7 @@ function RoomView({
   onLeave,
   onStart,
   onKick,
+  onTurnSeconds,
   onDissolve,
 }: {
   room: LobbyRoomSnapshot;
@@ -389,6 +392,7 @@ function RoomView({
   onLeave: () => void;
   onStart: () => void;
   onKick: (memberId: string) => void;
+  onTurnSeconds: (seconds: TurnSeconds) => void;
   onDissolve: () => void;
 }) {
   const host = room.members.find((member) => member.isHost);
@@ -447,6 +451,25 @@ function RoomView({
                   <div className="player-details"><strong>等待玩家加入</strong><span>分享房间码邀请朋友</span></div>
                 </div>
               ))}
+            </div>
+            <div className="turn-time-setting">
+              <div className="panel-label">行动时长 <span>{isHost ? "每位玩家每回合" : "由房主设置"}</span></div>
+              <div className="capacity-options" role="group" aria-label="每回合行动时长">
+                {TURN_SECONDS_OPTIONS.map((seconds) => (
+                  <button
+                    key={seconds}
+                    type="button"
+                    className={room.turnSeconds === seconds ? "capacity-option selected" : "capacity-option"}
+                    aria-pressed={room.turnSeconds === seconds}
+                    disabled={!isHost}
+                    onClick={() => onTurnSeconds(seconds)}
+                  >
+                    <strong>{seconds < 60 ? seconds : seconds / 60}</strong>
+                    <span>{seconds < 60 ? "秒" : "分钟"}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="field-hint">超时未行动将自动跳过该玩家的回合。</p>
             </div>
             <div className="room-actions">
               {isHost ? (

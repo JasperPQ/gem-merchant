@@ -17,6 +17,7 @@ import {
 } from "@gem-merchant/game";
 import GameRules from "./GameRules.js";
 import { socket } from "./socket.js";
+import { useGameSounds, useSoundSetting } from "./sound.js";
 import "./game.css";
 
 // 颜色名只用于悬停提示和读屏，界面上用颜色本身表达。
@@ -170,16 +171,41 @@ function Holdings({ player, size }: { player: PlayerState; size: "large" | "smal
   );
 }
 
+/** 服务端发来的剩余毫秒数换算成本地截止时间，每次收到新快照时重新校准。 */
+function useCountdown(remainingMs: number | undefined, syncKey: unknown): number {
+  const [deadline, setDeadline] = useState(() => Date.now() + (remainingMs ?? 0));
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    setDeadline(Date.now() + (remainingMs ?? 0));
+    setNow(Date.now());
+  }, [remainingMs, syncKey]);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(timer);
+  }, []);
+  return Math.max(0, Math.ceil((deadline - now) / 1000));
+}
+
+function TurnTimer({ seconds }: { seconds: number }) {
+  return (
+    <span className={`gm-turn-timer${seconds <= 10 ? " gm-turn-timer-low" : ""}`} title="本回合剩余行动时间" aria-label={`本回合剩余 ${seconds} 秒`}>
+      {seconds}s
+    </span>
+  );
+}
+
 function RivalPanel({
   player,
   member,
   score,
   active,
+  secondsLeft,
 }: {
   player: PlayerState;
   member: LobbyMember | undefined;
   score: number;
   active: boolean;
+  secondsLeft: number;
 }) {
   const offline = member?.connected === false;
   return (
@@ -188,6 +214,7 @@ function RivalPanel({
         <span className="gm-avatar">{player.name.slice(0, 1).toUpperCase()}</span>
         <strong className="gm-rival-name">{player.name}</strong>
         {offline && <span className="gm-offline" title="离线">离线</span>}
+        {active && <TurnTimer seconds={secondsLeft} />}
         <span className="gm-score" title={`${score} 分`}>{score}</span>
       </header>
       <Holdings player={player} size="small" />
@@ -313,18 +340,7 @@ function RematchPanel({ room, winnerNames, onRematch }: {
   onRematch: (accept: boolean) => void;
 }) {
   const rematch = room.rematch;
-  const [deadline, setDeadline] = useState(() => Date.now() + (rematch?.remainingMs ?? 0));
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!rematch) return;
-    setDeadline(Date.now() + rematch.remainingMs);
-    setNow(Date.now());
-  }, [rematch?.remainingMs]);
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 500);
-    return () => window.clearInterval(timer);
-  }, []);
-  const secondsLeft = Math.max(0, Math.ceil((deadline - now) / 1000));
+  const secondsLeft = useCountdown(rematch?.remainingMs, room);
   const accepted = new Set(rematch?.acceptedIds ?? []);
   const myVote = accepted.has(socket.id ?? "");
 
@@ -383,6 +399,10 @@ function GameBoard({
   const [returnPrompt, setReturnPrompt] = useState<ReturnPrompt | null>(null);
   const [returnSelection, setReturnSelection] = useState<TokenCounts>(zeroTokens);
   const [confirmPrompt, setConfirmPrompt] = useState<ConfirmPrompt | null>(null);
+  const turnSecondsLeft = useCountdown(room.turnRemainingMs, room);
+  const [soundOn, toggleSound] = useSoundSetting();
+  const myTurnNow = game?.status === "active" && game.players[game.activePlayerIndex]?.id === socket.id;
+  useGameSounds(game, socket.id, myTurnNow, turnSecondsLeft);
   const scores = useMemo(
     () => new Map((game?.players ?? []).map((candidate) => [candidate.id, getPlayerScore(candidate)])),
     [game?.players],
@@ -516,11 +536,18 @@ function GameBoard({
         {brand}
         <span className="gm-room-code" title="房间码">{room.code}</span>
         <span className={isMyTurn ? "turn-indicator my-turn" : "turn-indicator"}>
-          <span className="turn-dot" />{turnText}
+          <span className="turn-dot" />{turnText}{active && ` · ${turnSecondsLeft}s`}
         </span>
         <span className="gm-feedback" role="status">
           {error ? <span className="gm-feedback-error">{error}</span> : notice}
         </span>
+        <button
+          type="button"
+          className={`gm-sound-toggle${soundOn ? "" : " off"}`}
+          onClick={toggleSound}
+          aria-pressed={soundOn}
+          title={soundOn ? "关闭游戏音效" : "开启游戏音效"}
+        >{soundOn ? "🔊 音效" : "🔇 音效"}</button>
         <GameRules />
         {room.members.find((member) => member.id === socket.id)?.isHost && (
           <button type="button" className="gm-dissolve" onClick={onDissolve}>解散房间</button>
@@ -536,6 +563,7 @@ function GameBoard({
             member={room.members.find((item) => item.id === candidate.id)}
             score={scores.get(candidate.id) ?? 0}
             active={active && candidate.id === activePlayer.id}
+            secondsLeft={turnSecondsLeft}
           />
         ))}
       </aside>
@@ -626,6 +654,7 @@ function GameBoard({
           <strong className="gm-me-name">{player.name}</strong>
           <span className="gm-score gm-score-large" title={`${scores.get(player.id) ?? 0} 分`}>{scores.get(player.id) ?? 0}</span>
           <span className="gm-gem-total" title="持有宝石总数 / 上限">{countTokens(player.gems)}/10</span>
+          {isMyTurn && <TurnTimer seconds={turnSecondsLeft} />}
         </div>
         <Holdings player={player} size="large" />
         <div className="gm-me-reserved" aria-label={`预留卡 ${player.reservedCards.length} / 3`}>

@@ -485,6 +485,22 @@ export function applyAction(state: GameState, actorId: string, action: GameActio
 	return next;
 }
 
+/** 行动超时：当前玩家本回合什么都不做；若正在选贵族，则替他选第一位。 */
+export function skipTurn(state: GameState): GameState {
+	if (state.status !== "active") {
+		fail("GAME_FINISHED", "This game has already finished.");
+	}
+	const next = cloneState(state);
+	const player = next.players[next.activePlayerIndex]!;
+	const pendingNobleId = next.pendingNobleIds[0];
+	if (pendingNobleId) {
+		claimNoble(next, player, pendingNobleId);
+		next.pendingNobleIds = [];
+	}
+	advanceTurn(next);
+	return next;
+}
+
 export function getPlayerScore(player: PlayerState): number {
 	return (
 		player.purchasedCards.reduce((total, card) => total + card.points, 0) +

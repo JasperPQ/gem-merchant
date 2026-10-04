@@ -324,6 +324,11 @@ button:focus-visible, input:focus-visible, a:focus-visible {
 .player-details strong small { margin-left: 7px; color: #9a9d94; font-size: 9px; font-weight: 400; }
 .player-details span { color: #a1a198; font-size: 9px; }
 .host-badge { border: 1px solid #e9e1d2; border-radius: 4px; padding: 4px 6px; color: #9a8057; font-size: 9px; }
+.turn-time-setting { margin: 16px 0 4px; }
+.turn-time-setting .panel-label { margin-bottom: 8px; }
+.turn-time-setting .capacity-option { height: 46px; }
+.turn-time-setting .capacity-option:disabled { cursor: default; }
+.turn-time-setting .capacity-option:disabled:not(.selected) { opacity: 0.55; }
 .room-actions { padding-top: 4px; }
 .room-actions .primary-button { margin-top: 15px; }
 .host-wait-note { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 19px 0 8px; color: #8c9188; font-size: 11px; }

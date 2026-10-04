@@ -9,6 +9,8 @@ import {
   createGame,
   getPlayerScore,
   redactGameForViewer,
+  skipTurn,
+  TURN_SECONDS_OPTIONS,
   type ClientToServerEvents,
   type IceServerConfig,
   type CreateRoomPayload,
@@ -20,6 +22,7 @@ import {
   type PublicRoomSummary,
   type RoomChatMessage,
   type ServerToClientEvents,
+  type TurnSeconds,
   type VoiceSignal,
 } from "@gem-merchant/game";
 
@@ -39,6 +42,10 @@ interface RoomState {
   voice: Map<string, { muted: boolean }>;
   /** 整轮结束后的继续投票。 */
   rematch?: { deadline: number; accepted: Set<string>; timer: ReturnType<typeof setTimeout> };
+  /** 每回合行动时长（秒），房主在等待大厅设置。 */
+  turnSeconds: TurnSeconds;
+  /** 当前回合的截止时间；到点自动跳过当前玩家。 */
+  turn?: { deadline: number; timer: ReturnType<typeof setTimeout> };
 }
 
 const ROOM_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -50,6 +57,7 @@ const ROOM_ABANDON_MS = Number(process.env.ROOM_ABANDON_MS ?? 2 * 60_000);
 const REMATCH_TIMEOUT_MS = Number(process.env.REMATCH_TIMEOUT_MS ?? 60_000);
 const ADMIN_RETRY_DELAY_MS = 2_000;
 const VOICE_SIGNAL_MAX_LENGTH = 20_000;
+const DEFAULT_TURN_SECONDS: TurnSeconds = 60;
 const TURN_CREDENTIAL_TTL_SECONDS = 24 * 60 * 60;
 const rooms = new Map<string, RoomState>();
 const socketRooms = new Map<string, string>();
@@ -143,6 +151,8 @@ function snapshot(room: RoomState, viewerId: string): LobbyRoomSnapshot {
     members: room.members.map((member) => ({ ...member })),
     chat: room.chat.map((entry) => ({ ...entry })),
     voice: [...room.voice].map(([id, state]) => ({ id, muted: state.muted })),
+    turnSeconds: room.turnSeconds,
+    ...(room.turn ? { turnRemainingMs: Math.max(0, room.turn.deadline - Date.now()) } : {}),
     ...(room.rematch ? { rematch: { remainingMs: Math.max(0, room.rematch.deadline - Date.now()), acceptedIds: [...room.rematch.accepted] } } : {}),
     ...(room.game ? { game: redactGameForViewer(room.game, viewerId) } : {}),
   };
@@ -278,6 +288,7 @@ function closeMemberConnection(room: RoomState, memberId: string, reason: string
 
 function deleteRoom(room: RoomState): void {
   clearTimeout(room.abandonTimer);
+  clearTurnTimer(room);
   clearTimeout(room.rematch?.timer);
   for (const member of room.members) socketRooms.delete(member.id);
   rooms.delete(room.code);
@@ -312,8 +323,42 @@ function returnToWaiting(room: RoomState, kickedIds: string[], reason: string): 
   const offlineIds = room.members.filter((member) => !member.connected && !kickedIds.includes(member.id)).map((member) => member.id);
   if (!removeMembers(room, [...kickedIds, ...offlineIds], reason)) return;
   room.status = "waiting";
+  clearTurnTimer(room);
   delete room.game;
   emitRoomUpdate(room);
+}
+
+function clearTurnTimer(room: RoomState): void {
+  clearTimeout(room.turn?.timer);
+  delete room.turn;
+}
+
+/** 当前玩家开始新的回合：限时 turnSeconds 秒，超时跳过。 */
+function startTurnTimer(room: RoomState): void {
+  clearTurnTimer(room);
+  if (room.game?.status !== "active") return;
+  const timer = setTimeout(() => expireTurn(room), room.turnSeconds * 1000);
+  timer.unref();
+  room.turn = { deadline: Date.now() + room.turnSeconds * 1000, timer };
+}
+
+function expireTurn(room: RoomState): void {
+  if (rooms.get(room.code) !== room || room.game?.status !== "active") return;
+  room.game = skipTurn(room.game);
+  afterGameChange(room);
+  emitRoomUpdate(room);
+}
+
+/** 对局状态变化后：结束则清空聊天并发起继续投票，否则为下一位玩家重新计时。 */
+function afterGameChange(room: RoomState, previousActiveIndex?: number): void {
+  if (room.game?.status === "finished") {
+    clearTurnTimer(room);
+    room.chat = [];
+    startRematchVote(room);
+    return;
+  }
+  // 选贵族仍属于同一回合，不重新计时。
+  if (room.game?.activePlayerIndex !== previousActiveIndex) startTurnTimer(room);
 }
 
 /** 整轮结束：所有人需在 REMATCH_TIMEOUT_MS 内确认是否继续。 */
@@ -438,6 +483,7 @@ io.on("connection", (socket) => {
       members: [{ id: socket.id, name: normalizeName(payload.name)!, isHost: true, connected: true }],
       chat: [],
       voice: new Map(),
+      turnSeconds: DEFAULT_TURN_SECONDS,
     };
     rooms.set(code, room);
     socketRooms.set(socket.id, code);
@@ -535,6 +581,7 @@ io.on("connection", (socket) => {
         noblesFile.nobles,
       );
       room.status = "playing";
+      startTurnTimer(room);
       const roomSnapshot = snapshot(room, socket.id);
       ack({ ok: true, data: roomSnapshot });
       emitRoomUpdate(room);
@@ -568,13 +615,9 @@ io.on("connection", (socket) => {
     }
 
     try {
-      const wasActive = room.game.status === "active";
+      const previousActiveIndex = room.game.activePlayerIndex;
       room.game = applyAction(room.game, socket.id, action);
-      // 对局结束时清空房间聊天记录。
-      if (wasActive && room.game.status === "finished") {
-        room.chat = [];
-        startRematchVote(room);
-      }
+      afterGameChange(room, previousActiveIndex);
       const roomSnapshot = snapshot(room, socket.id);
       ack({ ok: true, data: roomSnapshot });
       emitRoomUpdate(room);
@@ -604,7 +647,27 @@ io.on("connection", (socket) => {
         cardsFile.cards,
         noblesFile.nobles,
       );
+      startTurnTimer(room);
     }
+    emitRoomUpdate(room);
+  });
+
+  socket.on("room:turnSeconds", (seconds, ack) => {
+    const room = findRoomForSocket(socket.id);
+    if (!room || room.ownerId !== socket.id) {
+      ack({ ok: false, error: "只有房主可以设置行动时长。" });
+      return;
+    }
+    if (room.status !== "waiting") {
+      ack({ ok: false, error: "对局开始后不能修改行动时长。" });
+      return;
+    }
+    if (!TURN_SECONDS_OPTIONS.includes(seconds)) {
+      ack({ ok: false, error: "行动时长只能是 45 秒、1 分钟或 2 分钟。" });
+      return;
+    }
+    room.turnSeconds = seconds;
+    ack({ ok: true, data: undefined });
     emitRoomUpdate(room);
   });
 
@@ -734,8 +797,15 @@ export const testHooks = {
     const room = rooms.get(code);
     if (!room?.game) throw new Error("no game");
     room.game = { ...room.game, status: "finished" };
+    clearTurnTimer(room);
     startRematchVote(room);
     emitRoomUpdate(room);
+  },
+  /** 让当前回合立即超时。 */
+  expireTurn(code: string): void {
+    const room = rooms.get(code);
+    if (!room) throw new Error("no room");
+    expireTurn(room);
   },
 };
 
