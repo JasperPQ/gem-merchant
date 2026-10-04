@@ -1,8 +1,8 @@
-import { createHash, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { createHash, createHmac, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { Server } from "socket.io";
 import {
   applyAction,
@@ -10,10 +10,9 @@ import {
   getPlayerScore,
   redactGameForViewer,
   type ClientToServerEvents,
+  type IceServerConfig,
   type CreateRoomPayload,
-  type DeleteGuestbookEntry,
   type DevelopmentCard,
-  type GuestbookEntry,
   type JoinRoomPayload,
   type LobbyMember,
   type LobbyRoomSnapshot,
@@ -21,7 +20,7 @@ import {
   type PublicRoomSummary,
   type RoomChatMessage,
   type ServerToClientEvents,
-  type SubmitGuestbookEntry,
+  type VoiceSignal,
 } from "@gem-merchant/game";
 
 interface RoomState {
@@ -34,19 +33,26 @@ interface RoomState {
   members: LobbyMember[];
   chat: RoomChatMessage[];
   game?: ReturnType<typeof createGame>;
+  /** 对局中所有玩家都离线时启动的关闭计时器。 */
+  abandonTimer?: ReturnType<typeof setTimeout>;
+  /** 在语音里的成员及其是否静音。 */
+  voice: Map<string, { muted: boolean }>;
+  /** 整轮结束后的继续投票。 */
+  rematch?: { deadline: number; accepted: Set<string>; timer: ReturnType<typeof setTimeout> };
 }
 
 const ROOM_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const ROOM_CODE_LENGTH = 6;
-const GUESTBOOK_LIMIT = 200;
-const GUESTBOOK_RATE_LIMIT_MS = 10_000;
-const ADMIN_RETRY_DELAY_MS = 2_000;
 const ROOM_CHAT_LIMIT = 100;
 const ROOM_CHAT_MAX_LENGTH = 200;
 const ROOM_CHAT_RATE_LIMIT_MS = 1_000;
+const ROOM_ABANDON_MS = Number(process.env.ROOM_ABANDON_MS ?? 2 * 60_000);
+const REMATCH_TIMEOUT_MS = Number(process.env.REMATCH_TIMEOUT_MS ?? 60_000);
+const ADMIN_RETRY_DELAY_MS = 2_000;
+const VOICE_SIGNAL_MAX_LENGTH = 20_000;
+const TURN_CREDENTIAL_TTL_SECONDS = 24 * 60 * 60;
 const rooms = new Map<string, RoomState>();
 const socketRooms = new Map<string, string>();
-const guestbookPostTimes = new Map<string, number>();
 const roomChatTimes = new Map<string, number>();
 const adminFailureTimes = new Map<string, number>();
 
@@ -56,75 +62,6 @@ const cardsFile = JSON.parse(
 const noblesFile = JSON.parse(
   readFileSync(new URL("../../../data/nobles.json", import.meta.url), "utf8"),
 ) as { nobles: Noble[] };
-const guestbookPath = process.env.GUESTBOOK_FILE
-  ?? fileURLToPath(new URL("../../../data/guestbook.json", import.meta.url));
-
-function loadGuestbook(): GuestbookEntry[] {
-  if (!existsSync(guestbookPath)) return [];
-  try {
-    const parsed = JSON.parse(readFileSync(guestbookPath, "utf8")) as { entries?: unknown };
-    if (!Array.isArray(parsed.entries)) return [];
-    return parsed.entries.filter((entry): entry is GuestbookEntry =>
-      Boolean(entry)
-      && typeof entry === "object"
-      && typeof entry.id === "string"
-      && typeof entry.name === "string"
-      && typeof entry.message === "string"
-      && typeof entry.createdAt === "string",
-    ).slice(-GUESTBOOK_LIMIT);
-  } catch {
-    return [];
-  }
-}
-
-let guestbookEntries = loadGuestbook();
-
-function getGuestbookEntries(): GuestbookEntry[] {
-  return [...guestbookEntries].reverse().map((entry) => ({ ...entry }));
-}
-
-function saveGuestbook(): void {
-  mkdirSync(dirname(guestbookPath), { recursive: true });
-  const temporaryPath = `${guestbookPath}.${process.pid}.tmp`;
-  writeFileSync(temporaryPath, `${JSON.stringify({ entries: guestbookEntries }, null, 2)}\n`, "utf8");
-  renameSync(temporaryPath, guestbookPath);
-}
-
-/** 未配置 ADMIN_TOKEN 时管理功能关闭。 */
-const adminTokenHash = process.env.ADMIN_TOKEN
-  ? createHash("sha256").update(process.env.ADMIN_TOKEN).digest()
-  : null;
-
-function checkAdminToken(socketId: string, token: unknown): string | null {
-  if (!adminTokenHash) return "管理功能未启用。";
-  const now = Date.now();
-  if (now - (adminFailureTimes.get(socketId) ?? 0) < ADMIN_RETRY_DELAY_MS) {
-    return "尝试太频繁了，请稍后再试。";
-  }
-  const tokenHash = createHash("sha256").update(typeof token === "string" ? token : "").digest();
-  if (!timingSafeEqual(tokenHash, adminTokenHash)) {
-    adminFailureTimes.set(socketId, now);
-    return "管理员口令不正确。";
-  }
-  return null;
-}
-
-function normalizeGuestName(value: unknown): string | null {
-  if (value === undefined || value === null || value === "") return "游客";
-  if (typeof value !== "string") return null;
-  const name = value.replace(/[\u0000-\u001f\u007f]/g, "").trim().replace(/\s+/g, " ");
-  return name.length >= 1 && name.length <= 18 ? name : null;
-}
-
-function normalizeGuestMessage(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const message = value
-    .replace(/\r\n?/g, "\n")
-    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "")
-    .trim();
-  return message.length >= 2 && message.length <= 280 ? message : null;
-}
-
 export const httpServer = createServer((request, response) => {
   if (request.url === "/health") {
     response.writeHead(200, { "content-type": "application/json" });
@@ -205,6 +142,8 @@ function snapshot(room: RoomState, viewerId: string): LobbyRoomSnapshot {
     status: room.status,
     members: room.members.map((member) => ({ ...member })),
     chat: room.chat.map((entry) => ({ ...entry })),
+    voice: [...room.voice].map(([id, state]) => ({ id, muted: state.muted })),
+    ...(room.rematch ? { rematch: { remainingMs: Math.max(0, room.rematch.deadline - Date.now()), acceptedIds: [...room.rematch.accepted] } } : {}),
     ...(room.game ? { game: redactGameForViewer(room.game, viewerId) } : {}),
   };
 }
@@ -238,8 +177,37 @@ function roomSummaries(): PublicRoomSummary[] {
     .sort((left, right) => order[left.status] - order[right.status]);
 }
 
+/** 「在线牌桌」列表最多每秒推送一次，期间的变化合并到下一次。 */
+const LOBBY_UPDATE_INTERVAL_MS = 1_000;
+let lobbyUpdateTimer: ReturnType<typeof setTimeout> | undefined;
+let lobbyUpdatePending = false;
+
+/** 只推送给停留在首页（不在任何房间里）的连接；房间里的玩家看不到这个列表。 */
+function sendLobbyUpdate(): void {
+  const summaries = roomSummaries();
+  for (const [socketId, client] of io.sockets.sockets) {
+    if (!socketRooms.has(socketId)) client.emit("lobby:updated", summaries);
+  }
+}
+
 function emitLobbyUpdate(): void {
-  io.emit("lobby:updated", roomSummaries());
+  if (lobbyUpdateTimer) {
+    lobbyUpdatePending = true;
+    return;
+  }
+  sendLobbyUpdate();
+  const flush = () => {
+    if (!lobbyUpdatePending) {
+      lobbyUpdateTimer = undefined;
+      return;
+    }
+    lobbyUpdatePending = false;
+    sendLobbyUpdate();
+    lobbyUpdateTimer = setTimeout(flush, LOBBY_UPDATE_INTERVAL_MS);
+    lobbyUpdateTimer.unref();
+  };
+  lobbyUpdateTimer = setTimeout(flush, LOBBY_UPDATE_INTERVAL_MS);
+  lobbyUpdateTimer.unref();
 }
 
 function emitRoomUpdate(room: RoomState): void {
@@ -259,6 +227,7 @@ function removeWaitingMember(socketId: string): void {
   const code = socketRooms.get(socketId);
   if (!code) return;
   socketRooms.delete(socketId);
+  rooms.get(code)?.voice.delete(socketId);
 
   const room = rooms.get(code);
   if (!room) return;
@@ -266,6 +235,7 @@ function removeWaitingMember(socketId: string): void {
     room.members = room.members.map((member) =>
       member.id === socketId ? { ...member, connected: false } : member,
     );
+    if (room.members.every((member) => !member.connected)) scheduleAbandonedRoomClose(room);
     emitRoomUpdate(room);
     return;
   }
@@ -286,6 +256,124 @@ function removeWaitingMember(socketId: string): void {
   emitRoomUpdate(room);
 }
 
+/** 所有玩家离线满 ROOM_ABANDON_MS 后关闭房间；期间有人重新加入则取消。 */
+function scheduleAbandonedRoomClose(room: RoomState): void {
+  clearTimeout(room.abandonTimer);
+  room.abandonTimer = setTimeout(() => {
+    if (rooms.get(room.code) !== room || room.members.some((member) => member.connected)) return;
+    rooms.delete(room.code);
+    emitLobbyUpdate();
+  }, ROOM_ABANDON_MS);
+  room.abandonTimer.unref();
+}
+
+/** 通知某个连接已被移出房间，并断开它和房间的关联。 */
+function closeMemberConnection(room: RoomState, memberId: string, reason: string): void {
+  socketRooms.delete(memberId);
+  const memberSocket = io.sockets.sockets.get(memberId);
+  if (!memberSocket) return;
+  void memberSocket.leave(room.code);
+  memberSocket.emit("room:closed", { reason });
+}
+
+function deleteRoom(room: RoomState): void {
+  clearTimeout(room.abandonTimer);
+  clearTimeout(room.rematch?.timer);
+  for (const member of room.members) socketRooms.delete(member.id);
+  rooms.delete(room.code);
+  emitLobbyUpdate();
+}
+
+function dissolveRoom(room: RoomState, reason: string): void {
+  for (const member of room.members) closeMemberConnection(room, member.id, reason);
+  deleteRoom(room);
+}
+
+/** 移出成员并在需要时转移房主；房间空了就删除。返回房间是否还在。 */
+function removeMembers(room: RoomState, memberIds: string[], reason: string): boolean {
+  for (const memberId of memberIds) closeMemberConnection(room, memberId, reason);
+  for (const memberId of memberIds) room.voice.delete(memberId);
+  room.members = room.members.filter((member) => !memberIds.includes(member.id));
+  if (room.members.length === 0) {
+    deleteRoom(room);
+    return false;
+  }
+  if (!room.members.some((member) => member.id === room.ownerId)) room.ownerId = room.members[0]!.id;
+  room.members = room.members.map((member) => ({ ...member, isHost: member.id === room.ownerId }));
+  return true;
+}
+
+/** 有人拒绝或超时：移出这些人和已离线的人，其余玩家回到等待大厅。 */
+function returnToWaiting(room: RoomState, kickedIds: string[], reason: string): void {
+  clearTimeout(room.rematch?.timer);
+  delete room.rematch;
+  clearTimeout(room.abandonTimer);
+  delete room.abandonTimer;
+  const offlineIds = room.members.filter((member) => !member.connected && !kickedIds.includes(member.id)).map((member) => member.id);
+  if (!removeMembers(room, [...kickedIds, ...offlineIds], reason)) return;
+  room.status = "waiting";
+  delete room.game;
+  emitRoomUpdate(room);
+}
+
+/** 整轮结束：所有人需在 REMATCH_TIMEOUT_MS 内确认是否继续。 */
+function startRematchVote(room: RoomState): void {
+  clearTimeout(room.rematch?.timer);
+  const timer = setTimeout(() => {
+    if (rooms.get(room.code) !== room || !room.rematch) return;
+    const accepted = room.rematch.accepted;
+    const pending = room.members.filter((member) => !accepted.has(member.id)).map((member) => member.id);
+    returnToWaiting(room, pending, "没有在 1 分钟内确认继续，已被移出房间。");
+  }, REMATCH_TIMEOUT_MS);
+  timer.unref();
+  room.rematch = { deadline: Date.now() + REMATCH_TIMEOUT_MS, accepted: new Set(), timer };
+}
+
+/** 未配置 ADMIN_TOKEN 时管理功能关闭。 */
+const adminTokenHash = process.env.ADMIN_TOKEN
+  ? createHash("sha256").update(process.env.ADMIN_TOKEN).digest()
+  : null;
+
+function checkAdminToken(socketId: string, token: unknown): string | null {
+  if (!adminTokenHash) return "管理功能未启用。";
+  const now = Date.now();
+  if (now - (adminFailureTimes.get(socketId) ?? 0) < ADMIN_RETRY_DELAY_MS) {
+    return "尝试太频繁了，请稍后再试。";
+  }
+  const tokenHash = createHash("sha256").update(typeof token === "string" ? token : "").digest();
+  if (!timingSafeEqual(tokenHash, adminTokenHash)) {
+    adminFailureTimes.set(socketId, now);
+    return "管理员口令不正确。";
+  }
+  return null;
+}
+
+/**
+ * 语音用的 STUN/TURN 配置。配置了 TURN_HOST 和 TURN_SECRET 时，按 coturn 的
+ * use-auth-secret 约定发放 24 小时有效的临时凭证；否则只靠局域网直连（本地开发）。
+ */
+function iceServersFor(memberId: string): IceServerConfig[] {
+  const host = process.env.TURN_HOST;
+  const secret = process.env.TURN_SECRET;
+  if (!host || !secret) return [];
+  const username = `${Math.floor(Date.now() / 1000) + TURN_CREDENTIAL_TTL_SECONDS}:${memberId}`;
+  const credential = createHmac("sha1", secret).update(username).digest("base64");
+  return [
+    { urls: `stun:${host}:3478` },
+    { urls: [`turn:${host}:3478?transport=udp`, `turn:${host}:3478?transport=tcp`], username, credential },
+  ];
+}
+
+function isVoiceSignal(value: unknown): value is VoiceSignal {
+  if (!value || typeof value !== "object") return false;
+  if (JSON.stringify(value).length > VOICE_SIGNAL_MAX_LENGTH) return false;
+  const data = value as { description?: { type?: unknown; sdp?: unknown }; candidate?: { candidate?: unknown } };
+  if (data.description) {
+    return (data.description.type === "offer" || data.description.type === "answer") && typeof data.description.sdp === "string";
+  }
+  return Boolean(data.candidate) && typeof data.candidate?.candidate === "string";
+}
+
 /** 把离线玩家的座位交给新的连接，保留其对局状态。 */
 function reassignMember(room: RoomState, previousId: string, nextId: string): void {
   const swap = (id: string) => (id === previousId ? nextId : id);
@@ -294,6 +382,7 @@ function reassignMember(room: RoomState, previousId: string, nextId: string): vo
   );
   room.ownerId = swap(room.ownerId);
   room.chat = room.chat.map((entry) => ({ ...entry, senderId: swap(entry.senderId) }));
+  if (room.rematch) room.rematch.accepted = new Set([...room.rematch.accepted].map(swap));
   if (room.game) {
     room.game = {
       ...room.game,
@@ -310,80 +399,6 @@ function invalidNameMessage(payload: CreateRoomPayload | JoinRoomPayload): strin
 io.on("connection", (socket) => {
   socket.on("lobby:get", (ack) => {
     ack({ ok: true, data: roomSummaries() });
-  });
-
-  socket.on("guestbook:get", (ack) => {
-    ack({ ok: true, data: getGuestbookEntries() });
-  });
-
-  socket.on("guestbook:post", (payload: SubmitGuestbookEntry, ack) => {
-    const name = normalizeGuestName(payload?.name);
-    if (!name) {
-      ack({ ok: false, error: "昵称最多 18 个字符。" });
-      return;
-    }
-    const message = normalizeGuestMessage(payload?.message);
-    if (!message) {
-      ack({ ok: false, error: "留言需为 2–280 个字符。" });
-      return;
-    }
-
-    const now = Date.now();
-    const lastPostAt = guestbookPostTimes.get(socket.id) ?? 0;
-    if (now - lastPostAt < GUESTBOOK_RATE_LIMIT_MS) {
-      ack({ ok: false, error: "留言太频繁了，请稍后再试。" });
-      return;
-    }
-
-    const entry: GuestbookEntry = {
-      id: randomUUID(),
-      name,
-      message,
-      createdAt: new Date(now).toISOString(),
-    };
-    guestbookEntries = [...guestbookEntries, entry].slice(-GUESTBOOK_LIMIT);
-    try {
-      saveGuestbook();
-    } catch {
-      guestbookEntries = guestbookEntries.filter((candidate) => candidate.id !== entry.id);
-      ack({ ok: false, error: "留言暂时无法保存，请稍后重试。" });
-      return;
-    }
-
-    guestbookPostTimes.set(socket.id, now);
-    const entries = getGuestbookEntries();
-    ack({ ok: true, data: entries });
-    io.emit("guestbook:updated", entries);
-  });
-
-  socket.on("admin:verify", (token, ack) => {
-    const error = checkAdminToken(socket.id, token);
-    ack(error ? { ok: false, error } : { ok: true, data: undefined });
-  });
-
-  socket.on("guestbook:delete", (payload: DeleteGuestbookEntry, ack) => {
-    const error = checkAdminToken(socket.id, payload?.token);
-    if (error) {
-      ack({ ok: false, error });
-      return;
-    }
-    const previousEntries = guestbookEntries;
-    guestbookEntries = guestbookEntries.filter((entry) => entry.id !== payload.id);
-    if (guestbookEntries.length === previousEntries.length) {
-      ack({ ok: false, error: "这条留言已不存在。" });
-      return;
-    }
-    try {
-      saveGuestbook();
-    } catch {
-      guestbookEntries = previousEntries;
-      ack({ ok: false, error: "删除暂时无法保存，请稍后重试。" });
-      return;
-    }
-
-    const entries = getGuestbookEntries();
-    ack({ ok: true, data: entries });
-    io.emit("guestbook:updated", entries);
   });
 
   socket.on("room:create", (payload, ack) => {
@@ -422,6 +437,7 @@ io.on("connection", (socket) => {
       ownerId: socket.id,
       members: [{ id: socket.id, name: normalizeName(payload.name)!, isHost: true, connected: true }],
       chat: [],
+      voice: new Map(),
     };
     rooms.set(code, room);
     socketRooms.set(socket.id, code);
@@ -462,6 +478,8 @@ io.on("connection", (socket) => {
         ack({ ok: false, error: "这个昵称的玩家仍在线，无法重新加入。" });
         return;
       }
+      clearTimeout(room.abandonTimer);
+      delete room.abandonTimer;
       reassignMember(room, seat.id, socket.id);
       socketRooms.set(socket.id, code);
       void socket.join(code);
@@ -553,7 +571,10 @@ io.on("connection", (socket) => {
       const wasActive = room.game.status === "active";
       room.game = applyAction(room.game, socket.id, action);
       // 对局结束时清空房间聊天记录。
-      if (wasActive && room.game.status === "finished") room.chat = [];
+      if (wasActive && room.game.status === "finished") {
+        room.chat = [];
+        startRematchVote(room);
+      }
       const roomSnapshot = snapshot(room, socket.id);
       ack({ ok: true, data: roomSnapshot });
       emitRoomUpdate(room);
@@ -561,6 +582,116 @@ io.on("connection", (socket) => {
       const message = error instanceof Error ? error.message : "无法执行这个行动。";
       ack({ ok: false, error: message });
     }
+  });
+
+  socket.on("room:rematch", (accept, ack) => {
+    const room = findRoomForSocket(socket.id);
+    if (!room?.rematch || !room.members.some((member) => member.id === socket.id)) {
+      ack({ ok: false, error: "现在不需要确认。" });
+      return;
+    }
+    ack({ ok: true, data: undefined });
+    if (accept !== true) {
+      returnToWaiting(room, [socket.id], "你选择了不继续，已离开房间。");
+      return;
+    }
+    room.rematch.accepted.add(socket.id);
+    if (room.members.every((member) => room.rematch!.accepted.has(member.id))) {
+      clearTimeout(room.rematch.timer);
+      delete room.rematch;
+      room.game = createGame(
+        room.members.map((member) => ({ id: member.id, name: member.name })),
+        cardsFile.cards,
+        noblesFile.nobles,
+      );
+    }
+    emitRoomUpdate(room);
+  });
+
+  socket.on("room:kick", (memberId, ack) => {
+    const room = findRoomForSocket(socket.id);
+    if (!room || room.ownerId !== socket.id) {
+      ack({ ok: false, error: "只有房主可以移出玩家。" });
+      return;
+    }
+    if (room.status !== "waiting") {
+      ack({ ok: false, error: "对局中不能移出玩家；有人挂机可以解散房间。" });
+      return;
+    }
+    if (memberId === socket.id || !room.members.some((member) => member.id === memberId)) {
+      ack({ ok: false, error: "找不到这位玩家。" });
+      return;
+    }
+    removeMembers(room, [memberId], "你已被房主移出房间。");
+    ack({ ok: true, data: undefined });
+    emitRoomUpdate(room);
+  });
+
+  socket.on("room:dissolve", (ack) => {
+    const room = findRoomForSocket(socket.id);
+    if (!room || room.ownerId !== socket.id) {
+      ack({ ok: false, error: "只有房主可以解散房间。" });
+      return;
+    }
+    ack({ ok: true, data: undefined });
+    dissolveRoom(room, "房主解散了房间。");
+  });
+
+  socket.on("admin:verify", (token, ack) => {
+    const error = checkAdminToken(socket.id, token);
+    ack(error ? { ok: false, error } : { ok: true, data: undefined });
+  });
+
+  socket.on("admin:dissolve", (payload, ack) => {
+    const error = checkAdminToken(socket.id, payload?.token);
+    if (error) {
+      ack({ ok: false, error });
+      return;
+    }
+    const room = [...rooms.values()].find((candidate) => candidate.publicId === payload.roomId);
+    if (!room) {
+      ack({ ok: false, error: "这个房间已经不存在。" });
+      return;
+    }
+    dissolveRoom(room, "管理员解散了这个房间。");
+    ack({ ok: true, data: undefined });
+  });
+
+  socket.on("voice:join", (payload, ack) => {
+    const room = findRoomForSocket(socket.id);
+    if (!room) {
+      ack({ ok: false, error: "你当前不在房间中。" });
+      return;
+    }
+    room.voice.set(socket.id, { muted: payload?.muted === true });
+    ack({ ok: true, data: iceServersFor(socket.id) });
+    emitRoomUpdate(room);
+  });
+
+  socket.on("voice:mute", (muted, ack) => {
+    const room = findRoomForSocket(socket.id);
+    const state = room?.voice.get(socket.id);
+    if (!room || !state) {
+      ack({ ok: false, error: "你还没有加入语音。" });
+      return;
+    }
+    state.muted = muted === true;
+    ack({ ok: true, data: undefined });
+    emitRoomUpdate(room);
+  });
+
+  socket.on("voice:leave", (ack) => {
+    const room = findRoomForSocket(socket.id);
+    if (room?.voice.delete(socket.id)) emitRoomUpdate(room);
+    ack({ ok: true, data: undefined });
+  });
+
+  socket.on("voice:signal", (payload) => {
+    // 只在同一房间、都在语音里的两人之间转发。
+    const room = findRoomForSocket(socket.id);
+    if (!room || !room.voice.has(socket.id) || !room.voice.has(payload?.to) || payload.to === socket.id) return;
+    if (!isVoiceSignal(payload.data)) return;
+    io.to(payload.to).emit("voice:signal", { from: socket.id, data: payload.data });
   });
 
   socket.on("room:chat", (payload, ack) => {
@@ -591,12 +722,22 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    guestbookPostTimes.delete(socket.id);
-    adminFailureTimes.delete(socket.id);
     roomChatTimes.delete(socket.id);
+    adminFailureTimes.delete(socket.id);
     removeWaitingMember(socket.id);
   });
 });
+
+/** 仅供测试：直接把某个房间的对局标记为结束并发起继续投票。 */
+export const testHooks = {
+  finishGame(code: string): void {
+    const room = rooms.get(code);
+    if (!room?.game) throw new Error("no game");
+    room.game = { ...room.game, status: "finished" };
+    startRematchVote(room);
+    emitRoomUpdate(room);
+  },
+};
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   const port = Number(process.env.PORT ?? 3001);

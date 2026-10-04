@@ -1,4 +1,6 @@
 import type { PublicRoomSummary } from "@gem-merchant/game";
+import AdminBar, { adminEntryEnabled, useAdminToken } from "./AdminBar.js";
+import { socket } from "./socket.js";
 
 const statusLabels: Record<PublicRoomSummary["status"], string> = {
   waiting: "等待中",
@@ -11,6 +13,16 @@ function OnlineRooms({ rooms, connected }: { rooms: PublicRoomSummary[]; connect
     (total, room) => total + room.players.filter((player) => player.connected).length,
     0,
   );
+  const admin = useAdminToken();
+
+  function dissolve(room: PublicRoomSummary) {
+    const names = room.players.map((player) => player.name).join("、");
+    if (!window.confirm(`确定解散这个房间吗？（${names}）所有玩家都会被移出。`)) return;
+    admin.setError("");
+    socket.emit("admin:dissolve", { roomId: room.id, token: admin.token }, (response) => {
+      if (!response.ok) admin.setError(response.error);
+    });
+  }
 
   return (
     <section className="online-rooms" aria-labelledby="online-rooms-title">
@@ -24,6 +36,10 @@ function OnlineRooms({ rooms, connected }: { rooms: PublicRoomSummary[]; connect
           {connected ? `${onlineCount} 人在线 · ${rooms.length} 个房间` : "连接中…"}
         </span>
       </div>
+
+      {adminEntryEnabled && (
+        <AdminBar token={admin.token} error={admin.error} connected={connected} onLogin={admin.login} onLogout={admin.logout} />
+      )}
 
       {rooms.length > 0 ? (
         <div className="online-rooms-grid">
@@ -46,6 +62,9 @@ function OnlineRooms({ rooms, connected }: { rooms: PublicRoomSummary[]; connect
                   </li>
                 ))}
               </ul>
+              {admin.token && (
+                <button className="admin-dissolve" type="button" onClick={() => dissolve(room)}>解散房间</button>
+              )}
             </article>
           ))}
         </div>

@@ -1,19 +1,14 @@
+import { createHmac } from "node:crypto";
 import { AddressInfo } from "node:net";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { io as createClient, type Socket } from "socket.io-client";
 import type {
   AckResponse,
   ClientToServerEvents,
   GameAction,
-  GuestbookEntry,
   LobbyRoomSnapshot,
   PublicRoomSummary,
-  DeleteGuestbookEntry,
   ServerToClientEvents,
-  SubmitGuestbookEntry,
 } from "@gem-merchant/game";
 
 type TestSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
@@ -22,11 +17,13 @@ const clients = new Set<TestSocket>();
 let serverUrl = "";
 let httpServer: typeof import("../src/index.js").httpServer;
 let serverIo: typeof import("../src/index.js").io;
-let guestbookFile = "";
-let temporaryDirectory = "";
-const previousGuestbookFile = process.env.GUESTBOOK_FILE;
+let testHooks: typeof import("../src/index.js").testHooks;
+const previousRematchMs = process.env.REMATCH_TIMEOUT_MS;
 const previousAdminToken = process.env.ADMIN_TOKEN;
+const rematchMs = 300;
 const adminToken = "test-admin-token";
+const previousAbandonMs = process.env.ROOM_ABANDON_MS;
+const abandonMs = 300;
 
 function connectClient(): Promise<TestSocket> {
   return new Promise((resolve, reject) => {
@@ -48,33 +45,25 @@ function emitAction(client: TestSocket, action: GameAction): Promise<AckResponse
   return new Promise((resolve) => client.emit("game:action", action, resolve));
 }
 
-function getGuestbook(client: TestSocket): Promise<AckResponse<GuestbookEntry[]>> {
-  return new Promise((resolve) => client.emit("guestbook:get", resolve));
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function postGuestbook(
-  client: TestSocket,
-  payload: SubmitGuestbookEntry,
-): Promise<AckResponse<GuestbookEntry[]>> {
-  return new Promise((resolve) => client.emit("guestbook:post", payload, resolve));
-}
-
-function deleteGuestbook(
-  client: TestSocket,
-  payload: DeleteGuestbookEntry,
-): Promise<AckResponse<GuestbookEntry[]>> {
-  return new Promise((resolve) => client.emit("guestbook:delete", payload, resolve));
+function joinRoom(client: TestSocket, name: string, code: string): Promise<AckResponse<LobbyRoomSnapshot>> {
+  return new Promise((resolve) => client.emit("room:join", { name, code }, resolve));
 }
 
 describe("Socket.IO lobby and game actions", () => {
   beforeAll(async () => {
-    temporaryDirectory = mkdtempSync(join(tmpdir(), "gem-merchant-guestbook-"));
-    guestbookFile = join(temporaryDirectory, "guestbook.json");
-    process.env.GUESTBOOK_FILE = guestbookFile;
+    process.env.ROOM_ABANDON_MS = String(abandonMs);
+    process.env.REMATCH_TIMEOUT_MS = String(rematchMs);
     process.env.ADMIN_TOKEN = adminToken;
+    process.env.TURN_HOST = "turn.example.com";
+    process.env.TURN_SECRET = "turn-secret";
     const serverModule = await import("../src/index.js");
     httpServer = serverModule.httpServer;
     serverIo = serverModule.io;
+    testHooks = serverModule.testHooks;
     await new Promise<void>((resolve, reject) => {
       httpServer.once("error", reject);
       httpServer.listen(0, resolve);
@@ -86,11 +75,14 @@ describe("Socket.IO lobby and game actions", () => {
   afterAll(async () => {
     for (const client of clients) client.disconnect();
     await new Promise<void>((resolve) => serverIo.close(() => resolve()));
-    if (previousGuestbookFile === undefined) delete process.env.GUESTBOOK_FILE;
-    else process.env.GUESTBOOK_FILE = previousGuestbookFile;
+    if (previousAbandonMs === undefined) delete process.env.ROOM_ABANDON_MS;
+    else process.env.ROOM_ABANDON_MS = previousAbandonMs;
+    if (previousRematchMs === undefined) delete process.env.REMATCH_TIMEOUT_MS;
+    else process.env.REMATCH_TIMEOUT_MS = previousRematchMs;
     if (previousAdminToken === undefined) delete process.env.ADMIN_TOKEN;
     else process.env.ADMIN_TOKEN = previousAdminToken;
-    rmSync(temporaryDirectory, { recursive: true, force: true });
+    delete process.env.TURN_HOST;
+    delete process.env.TURN_SECRET;
   });
 
   it("creates, joins, starts, rejects out-of-turn actions, and broadcasts valid turns", async () => {
@@ -278,6 +270,65 @@ describe("Socket.IO lobby and game actions", () => {
     expect(acted.ok).toBe(true);
   });
 
+  it("closes a running game only after every player stays offline for the grace period", async () => {
+    const host = await connectClient();
+    const created = await new Promise<AckResponse<LobbyRoomSnapshot>>((resolve) => {
+      host.emit("room:create", { name: "Abandon Host", capacity: 2 }, resolve);
+    });
+    if (!created.ok) throw new Error(created.error);
+    const code = created.data.code;
+    const guest = await connectClient();
+    expect((await joinRoom(guest, "Abandon Guest", code)).ok).toBe(true);
+    const started = await new Promise<AckResponse<LobbyRoomSnapshot>>((resolve) => host.emit("room:start", resolve));
+    expect(started.ok).toBe(true);
+
+    guest.disconnect();
+    host.disconnect();
+    await delay(abandonMs / 3);
+    const returningHost = await connectClient();
+    const rejoined = await joinRoom(returningHost, "Abandon Host", code);
+    expect(rejoined.ok).toBe(true);
+
+    // 有人回来后计时器取消，房间应撑过原定的关闭时间。
+    await delay(abandonMs * 1.5);
+    const guestReturns = await joinRoom(await connectClient(), "Abandon Guest", code);
+    expect(guestReturns.ok).toBe(true);
+
+    for (const client of clients) {
+      if (client.connected) client.disconnect();
+    }
+    await delay(abandonMs * 2);
+    const tooLate = await joinRoom(await connectClient(), "Abandon Host", code);
+    expect(tooLate.ok).toBe(false);
+    if (tooLate.ok) throw new Error("Abandoned room was not closed.");
+    expect(tooLate.error).toContain("找不到");
+  });
+
+  it("pushes the online-tables list only to visitors on the home page, at most once per second", async () => {
+    const visitor = await connectClient();
+    const visitorLists: PublicRoomSummary[][] = [];
+    const visitorTimes: number[] = [];
+    visitor.on("lobby:updated", (list) => {
+      visitorLists.push(list);
+      visitorTimes.push(Date.now());
+    });
+    const host = await connectClient();
+    const code = (await new Promise<AckResponse<LobbyRoomSnapshot>>((resolve) => host.emit("room:create", { name: "Burst Host", capacity: 4 }, resolve)) as { ok: true; data: LobbyRoomSnapshot }).data.code;
+    let hostUpdates = 0;
+    host.on("lobby:updated", () => { hostUpdates += 1; });
+    for (const name of ["Burst One", "Burst Two", "Burst Three"]) {
+      const response = await joinRoom(await connectClient(), name, code);
+      expect(response.ok).toBe(true);
+    }
+    await delay(1_500);
+    expect(hostUpdates).toBe(0);
+    expect(visitorLists.length).toBeGreaterThanOrEqual(1);
+    expect(visitorLists.length).toBeLessThanOrEqual(2);
+    if (visitorTimes.length === 2) expect(visitorTimes[1]! - visitorTimes[0]!).toBeGreaterThanOrEqual(950);
+    const latest = visitorLists[visitorLists.length - 1]!;
+    expect(latest.find((room) => room.players.some((player) => player.name === "Burst Host"))?.players).toHaveLength(4);
+  });
+
   it("publishes live room summaries to visitors without room codes", async () => {
     const visitor = await connectClient();
     const host = await connectClient();
@@ -344,71 +395,159 @@ describe("Socket.IO lobby and game actions", () => {
     expect(empty.ok).toBe(false);
   });
 
-  it("persists guest reviews and broadcasts them to other visitors", async () => {
-    const author = await connectClient();
-    const visitor = await connectClient();
-    const initial = await getGuestbook(visitor);
-    expect(initial).toEqual({ ok: true, data: [] });
+  describe("room lifecycle", () => {
+    const emitAck = <T,>(client: TestSocket, event: string, ...args: unknown[]) =>
+      new Promise<AckResponse<T>>((resolve) => (client.emit as (...rest: unknown[]) => void)(event, ...args, resolve));
+    const closedReason = (client: TestSocket) => new Promise<string>((resolve) => client.once("room:closed", ({ reason }) => resolve(reason)));
 
-    const visitorUpdate = new Promise<GuestbookEntry[]>((resolve) => {
-      visitor.once("guestbook:updated", resolve);
-    });
-    const posted = await postGuestbook(author, {
-      name: "Guest Reviewer",
-      message: "A pleasant table for a quick game.",
-    });
-    expect(posted.ok).toBe(true);
-    if (!posted.ok) throw new Error(posted.error);
-    expect(posted.data[0]).toMatchObject({
-      name: "Guest Reviewer",
-      message: "A pleasant table for a quick game.",
+    async function startedRoom(names: string[]) {
+      const clientsInRoom = [await connectClient()];
+      const created = await new Promise<AckResponse<LobbyRoomSnapshot>>((resolve) => {
+        clientsInRoom[0]!.emit("room:create", { name: names[0]!, capacity: 4 }, resolve);
+      });
+      if (!created.ok) throw new Error(created.error);
+      for (const name of names.slice(1)) {
+        const client = await connectClient();
+        clientsInRoom.push(client);
+        const joined = await joinRoom(client, name, created.data.code);
+        if (!joined.ok) throw new Error(joined.error);
+      }
+      const started = await emitAck<LobbyRoomSnapshot>(clientsInRoom[0]!, "room:start");
+      if (!started.ok) throw new Error(started.error);
+      return { code: created.data.code, clients: clientsInRoom };
+    }
+
+    it("starts a fresh game when everyone agrees to continue", async () => {
+      const { code, clients: table } = await startedRoom(["Again A", "Again B"]);
+      testHooks.finishGame(code);
+      expect((await emitAck(table[0]!, "room:rematch", true)).ok).toBe(true);
+      const restarted = new Promise<LobbyRoomSnapshot>((resolve) => {
+        table[0]!.on("room:updated", (room) => { if (!room.rematch) resolve(room); });
+      });
+      expect((await emitAck(table[1]!, "room:rematch", true)).ok).toBe(true);
+      const room = await restarted;
+      expect(room.status).toBe("playing");
+      expect(room.game?.status).toBe("active");
+      expect(room.members).toHaveLength(2);
     });
 
-    const broadcast = await visitorUpdate;
-    expect(broadcast).toEqual(posted.data);
-    const persisted = JSON.parse(readFileSync(guestbookFile, "utf8")) as { entries: GuestbookEntry[] };
-    expect(persisted.entries).toHaveLength(1);
+    it("removes a player who declines and sends the rest back to the lobby", async () => {
+      const { code, clients: table } = await startedRoom(["Stay Host", "Quit Guest", "Stay Guest"]);
+      testHooks.finishGame(code);
+      const kicked = closedReason(table[1]!);
+      const backInLobby = new Promise<LobbyRoomSnapshot>((resolve) => {
+        table[0]!.on("room:updated", (room) => { if (room.status === "waiting") resolve(room); });
+      });
+      await emitAck(table[0]!, "room:rematch", true);
+      await emitAck(table[1]!, "room:rematch", false);
+      expect(await kicked).toContain("不继续");
+      const room = await backInLobby;
+      expect(room.game).toBeUndefined();
+      expect(room.members.map((member) => member.name)).toEqual(["Stay Host", "Stay Guest"]);
+    });
 
-    const rateLimited = await postGuestbook(author, { message: "Another review" });
-    expect(rateLimited.ok).toBe(false);
-    if (rateLimited.ok) throw new Error("Guestbook rate limit was not enforced.");
-    expect(rateLimited.error).toContain("频繁");
+    it("removes players who do not answer within the time limit", async () => {
+      const { code, clients: table } = await startedRoom(["Quick Host", "Slow Guest"]);
+      testHooks.finishGame(code);
+      const kicked = closedReason(table[1]!);
+      await emitAck(table[0]!, "room:rematch", true);
+      expect(await kicked).toContain("1 分钟");
+      await delay(50);
+      const rejoin = await joinRoom(await connectClient(), "Late Visitor", code);
+      if (!rejoin.ok) throw new Error(rejoin.error);
+      expect(rejoin.data.status).toBe("waiting");
+      expect(rejoin.data.members.map((member) => member.name)).toEqual(["Quick Host", "Late Visitor"]);
+    });
+
+    it("lets only the host kick players in the lobby and dissolve the room", async () => {
+      const host = await connectClient();
+      const created = await new Promise<AckResponse<LobbyRoomSnapshot>>((resolve) => host.emit("room:create", { name: "Boss", capacity: 4 }, resolve));
+      if (!created.ok) throw new Error(created.error);
+      const guest = await connectClient();
+      const other = await connectClient();
+      const guestRoom = await joinRoom(guest, "Kick Me", created.data.code);
+      if (!guestRoom.ok) throw new Error(guestRoom.error);
+      await joinRoom(other, "Keep Me", created.data.code);
+      const guestId = guestRoom.data.members.find((member) => member.name === "Kick Me")!.id;
+
+      expect((await emitAck(other, "room:kick", guestId)).ok).toBe(false);
+      const kicked = closedReason(guest);
+      expect((await emitAck(host, "room:kick", guestId)).ok).toBe(true);
+      expect(await kicked).toContain("房主");
+
+      const otherClosed = closedReason(other);
+      expect((await emitAck(other, "room:dissolve")).ok).toBe(false);
+      expect((await emitAck(host, "room:dissolve")).ok).toBe(true);
+      expect(await otherClosed).toContain("解散");
+      expect((await joinRoom(await connectClient(), "After", created.data.code)).ok).toBe(false);
+    });
+
+    it("refuses kicks during a game and lets an admin dissolve any room", async () => {
+      const { code, clients: table } = await startedRoom(["Admin Host", "Admin Guest"]);
+      const guestId = table[1]!.id!;
+      expect((await emitAck(table[0]!, "room:kick", guestId)).ok).toBe(false);
+
+      const visitor = await connectClient();
+      const lobby = await new Promise<AckResponse<PublicRoomSummary[]>>((resolve) => visitor.emit("lobby:get", resolve));
+      if (!lobby.ok) throw new Error(lobby.error);
+      const target = lobby.data.find((room) => room.players.some((player) => player.name === "Admin Host"))!;
+      expect((await emitAck(visitor, "admin:dissolve", { roomId: target.id, token: "wrong" })).ok).toBe(false);
+
+      const admin = await connectClient();
+      const hostClosed = closedReason(table[0]!);
+      expect((await emitAck(admin, "admin:dissolve", { roomId: target.id, token: adminToken })).ok).toBe(true);
+      expect(await hostClosed).toContain("管理员");
+      expect((await joinRoom(await connectClient(), "Admin Host", code)).ok).toBe(false);
+    });
   });
 
-  it("lets only an admin delete guest reviews", async () => {
-    const author = await connectClient();
-    const intruder = await connectClient();
-    const admin = await connectClient();
-    const posted = await postGuestbook(author, { message: "Spam that should be removed." });
-    if (!posted.ok) throw new Error(posted.error);
-    const target = posted.data[0]!;
+  describe("voice", () => {
+    type IceServers = import("@gem-merchant/game").IceServerConfig[];
+    const joinVoice = (client: TestSocket, muted = false) =>
+      new Promise<AckResponse<IceServers>>((resolve) => client.emit("voice:join", { muted }, resolve));
+    const latestRoom = (client: TestSocket) => new Promise<LobbyRoomSnapshot>((resolve) => client.once("room:updated", resolve));
 
-    const verifyWrong = await new Promise<AckResponse<void>>((resolve) => {
-      intruder.emit("admin:verify", "wrong-token", resolve);
+    it("hands out short-lived TURN credentials and relays signals only between voice members of one room", async () => {
+      const host = await connectClient();
+      const created = await new Promise<AckResponse<LobbyRoomSnapshot>>((resolve) => host.emit("room:create", { name: "Voice Host", capacity: 4 }, resolve));
+      if (!created.ok) throw new Error(created.error);
+      const guest = await connectClient();
+      await joinRoom(guest, "Voice Guest", created.data.code);
+      const outsider = await connectClient();
+      const otherRoom = await new Promise<AckResponse<LobbyRoomSnapshot>>((resolve) => outsider.emit("room:create", { name: "Outsider", capacity: 2 }, resolve));
+      expect(otherRoom.ok).toBe(true);
+
+      const joined = await joinVoice(host);
+      if (!joined.ok) throw new Error(joined.error);
+      const turn = joined.data.find((server) => server.username)!;
+      expect(turn.urls).toContain("turn:turn.example.com:3478?transport=udp");
+      const [expiry, memberId] = turn.username!.split(":");
+      expect(memberId).toBe(host.id);
+      expect(Number(expiry)).toBeGreaterThan(Date.now() / 1000);
+      expect(turn.credential).toBe(createHmac("sha1", "turn-secret").update(turn.username!).digest("base64"));
+
+      const received: unknown[] = [];
+      guest.on("voice:signal", (payload) => received.push(payload));
+      const offer = { description: { type: "offer" as const, sdp: "v=0" } };
+      host.emit("voice:signal", { to: guest.id!, data: offer });
+      await delay(80);
+      expect(received).toHaveLength(0);
+
+      const guestView = latestRoom(guest);
+      await joinVoice(guest, true);
+      expect((await guestView).voice).toEqual([{ id: host.id, muted: false }, { id: guest.id, muted: true }]);
+      host.emit("voice:signal", { to: guest.id!, data: offer });
+      outsider.emit("voice:signal", { to: guest.id!, data: offer });
+      host.emit("voice:signal", { to: guest.id!, data: { description: { type: "bogus", sdp: 1 } } as never });
+      await delay(80);
+      expect(received).toEqual([{ from: host.id, data: offer }]);
+
+      const afterLeave = latestRoom(host);
+      await new Promise((resolve) => guest.emit("voice:leave", resolve));
+      expect((await afterLeave).voice.map((entry) => entry.id)).toEqual([host.id]);
+      const afterDisconnect = latestRoom(guest);
+      host.disconnect();
+      expect((await afterDisconnect).voice).toEqual([]);
     });
-    expect(verifyWrong.ok).toBe(false);
-    const rejected = await deleteGuestbook(intruder, { id: target.id, token: "wrong-token" });
-    expect(rejected.ok).toBe(false);
-    if (rejected.ok) throw new Error("Admin retry delay was not enforced.");
-    expect(rejected.error).toContain("频繁");
-
-    const verified = await new Promise<AckResponse<void>>((resolve) => {
-      admin.emit("admin:verify", adminToken, resolve);
-    });
-    expect(verified).toEqual({ ok: true, data: undefined });
-
-    const authorUpdate = new Promise<GuestbookEntry[]>((resolve) => {
-      author.once("guestbook:updated", resolve);
-    });
-    const deleted = await deleteGuestbook(admin, { id: target.id, token: adminToken });
-    expect(deleted.ok).toBe(true);
-    if (!deleted.ok) throw new Error(deleted.error);
-    expect(deleted.data.some((entry) => entry.id === target.id)).toBe(false);
-    expect(await authorUpdate).toEqual(deleted.data);
-    const persisted = JSON.parse(readFileSync(guestbookFile, "utf8")) as { entries: GuestbookEntry[] };
-    expect(persisted.entries.some((entry) => entry.id === target.id)).toBe(false);
-
-    const missing = await deleteGuestbook(admin, { id: target.id, token: adminToken });
-    expect(missing.ok).toBe(false);
   });
 });

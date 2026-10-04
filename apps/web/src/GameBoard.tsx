@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   GEM_COLORS,
   TOKEN_COLORS,
@@ -8,13 +8,18 @@ import {
   type DevelopmentCard,
   type GameAction,
   type GemColor,
+  type LobbyMember,
   type LobbyRoomSnapshot,
+  type Noble,
   type PlayerState,
   type TokenColor,
   type TokenCounts,
 } from "@gem-merchant/game";
+import GameRules from "./GameRules.js";
 import { socket } from "./socket.js";
+import "./game.css";
 
+// 颜色名只用于悬停提示和读屏，界面上用颜色本身表达。
 const colorNames: Record<TokenColor, string> = {
   white: "白",
   blue: "蓝",
@@ -27,24 +32,20 @@ const colorNames: Record<TokenColor, string> = {
 const zeroTokens: TokenCounts = { white: 0, blue: 0, green: 0, red: 0, black: 0, gold: 0 };
 
 type GemAction = Extract<GameAction, { type: "takeGems" | "reserveCard" }>;
+type BuySource = Extract<GameAction, { type: "buyCard" }>["source"];
+type GameView = NonNullable<LobbyRoomSnapshot["game"]>;
+
+interface ConfirmPrompt {
+  title: string;
+  detail: string;
+  preview: ReactNode;
+  onConfirm: () => void;
+}
 
 interface ReturnPrompt {
   action: GemAction;
   projected: TokenCounts;
   required: number;
-}
-
-function countTokens(tokens: TokenCounts): number {
-  return TOKEN_COLORS.reduce((total, color) => total + tokens[color], 0);
-}
-
-function canAfford(player: PlayerState, card: DevelopmentCard): boolean {
-  const cost = getRemainingCost(player, card);
-  const missing = GEM_COLORS.reduce(
-    (total, color) => total + Math.max(0, cost[color] - player.gems[color]),
-    0,
-  );
-  return missing <= player.gems.gold;
 }
 
 type SelectedCard = {
@@ -54,337 +55,299 @@ type SelectedCard = {
     | { kind: "reserved" };
 };
 
-function TabletopView({
+function countTokens(tokens: TokenCounts): number {
+  return TOKEN_COLORS.reduce((total, color) => total + tokens[color], 0);
+}
+
+function missingGems(player: PlayerState, card: DevelopmentCard): number {
+  const cost = getRemainingCost(player, card);
+  return GEM_COLORS.reduce((total, color) => total + Math.max(0, cost[color] - player.gems[color]), 0);
+}
+
+function canAfford(player: PlayerState, card: DevelopmentCard): boolean {
+  return missingGems(player, card) <= player.gems.gold;
+}
+
+function costText(cost: Partial<Record<GemColor, number>>): string {
+  return GEM_COLORS.filter((color) => (cost[color] ?? 0) > 0).map((color) => `${colorNames[color]}${cost[color]}`).join(" ") || "无";
+}
+
+function cardLabel(card: DevelopmentCard): string {
+  return `${card.level}级土地 · ${card.points}分 · ${colorNames[card.bonusColor]}色抵扣 · 费用 ${costText(card.cost)}`;
+}
+
+function nobleLabel(noble: Noble): string {
+  return `贵族 ${noble.points}分 · 需要土地 ${costText(noble.requirements)}`;
+}
+
+function LevelDots({ level }: { level: number }) {
+  return (
+    <span className="gm-level" aria-hidden="true">
+      {Array.from({ length: level }, (_, index) => <i key={index} />)}
+    </span>
+  );
+}
+
+/** 土地卡：背景色即永久抵扣色，左上分数、右上等级点、左下费用。 */
+function CardFace({
+  card,
+  affordable = false,
+  mini = false,
+  onClick,
+}: {
+  card: DevelopmentCard;
+  affordable?: boolean;
+  mini?: boolean;
+  onClick?: () => void;
+}) {
+  const className = `gm-card gm-c-${card.bonusColor}${affordable ? " gm-affordable" : ""}${mini ? " gm-card-mini" : ""}`;
+  const content = (
+    <>
+      <span className="gm-card-top">
+        <b className="gm-card-points">{card.points > 0 ? card.points : ""}</b>
+        <LevelDots level={card.level} />
+      </span>
+      {!mini && (
+        <span className="gm-card-cost">
+          {GEM_COLORS.filter((color) => card.cost[color] > 0).map((color) => (
+            <i className={`gm-pip gm-c-${color}`} key={color}>{card.cost[color]}</i>
+          ))}
+        </span>
+      )}
+    </>
+  );
+  const label = cardLabel(card);
+  return onClick ? (
+    <button type="button" className={className} onClick={onClick} title={label} aria-label={label}>{content}</button>
+  ) : (
+    <span className={className} title={label} role="img" aria-label={label}>{content}</span>
+  );
+}
+
+function HiddenCard({ level, mini = false }: { level: number; mini?: boolean }) {
+  const label = `${level}级暗抽预留卡，内容不可见`;
+  return (
+    <span className={`gm-card gm-card-back${mini ? " gm-card-mini" : ""}`} title={label} role="img" aria-label={label}>
+      <span className="gm-card-top"><b /><LevelDots level={level} /></span>
+    </span>
+  );
+}
+
+function NobleTile({ noble }: { noble: Noble }) {
+  const label = nobleLabel(noble);
+  return (
+    <span className="gm-noble" title={label} role="img" aria-label={label}>
+      <b>{noble.points}</b>
+      <span className="gm-noble-needs">
+        {GEM_COLORS.filter((color) => noble.requirements[color] !== undefined).map((color) => (
+          <i className={`gm-need gm-c-${color}`} key={color}>{noble.requirements[color]}</i>
+        ))}
+      </span>
+    </span>
+  );
+}
+
+/** 每种颜色一列：上方土地数（卡形），下方宝石数（圆形）。 */
+function Holdings({ player, size }: { player: PlayerState; size: "large" | "small" }) {
+  const lands = getPlayerBonuses(player);
+  return (
+    <div className={`gm-holdings gm-holdings-${size}`}>
+      {TOKEN_COLORS.map((color) => {
+        const land = color === "gold" ? null : lands[color];
+        const label = color === "gold"
+          ? `金色万能宝石 ${player.gems.gold} 枚`
+          : `${colorNames[color]}色：土地 ${land} 块，宝石 ${player.gems[color]} 枚`;
+        return (
+          <span className="gm-holding" key={color} title={label} aria-label={label}>
+            {land === null
+              ? <span className="gm-land gm-land-empty" aria-hidden="true" />
+              : <span className={`gm-land gm-c-${color}${land === 0 ? " gm-zero" : ""}`} aria-hidden="true">{land}</span>}
+            <span className={`gm-token gm-c-${color}${player.gems[color] === 0 ? " gm-zero" : ""}`} aria-hidden="true">{player.gems[color]}</span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function RivalPanel({
+  player,
+  member,
+  score,
+  active,
+}: {
+  player: PlayerState;
+  member: LobbyMember | undefined;
+  score: number;
+  active: boolean;
+}) {
+  const offline = member?.connected === false;
+  return (
+    <article className={`gm-rival${active ? " gm-rival-active" : ""}${offline ? " gm-rival-offline" : ""}`}>
+      <header className="gm-rival-head">
+        <span className="gm-avatar">{player.name.slice(0, 1).toUpperCase()}</span>
+        <strong className="gm-rival-name">{player.name}</strong>
+        {offline && <span className="gm-offline" title="离线">离线</span>}
+        <span className="gm-score" title={`${score} 分`}>{score}</span>
+      </header>
+      <Holdings player={player} size="small" />
+      {(player.reservedCards.length > 0 || player.nobles.length > 0) && (
+        <div className="gm-rival-extras">
+          {player.reservedCards.map((card) => player.hiddenReservedCardIds.includes(card.id)
+            ? <HiddenCard level={card.level} mini key={card.id} />
+            : <CardFace card={card} mini key={card.id} />)}
+          {player.nobles.map((noble) => (
+            <span className="gm-noble-mini" key={noble.id} title={nobleLabel(noble)}>{noble.points}</span>
+          ))}
+        </div>
+      )}
+    </article>
+  );
+}
+
+function CardDialog({
+  selected,
   game,
   player,
   isMyTurn,
   busy,
-  selectedColors,
-  onSelectGem,
-  onTakeSelectedGems,
-  onTakeTwo,
-  onBuyCard,
-  onReserveMarketCard,
-  onReserveDeck,
+  onClose,
+  onBuy,
+  onReserve,
 }: {
-  game: NonNullable<LobbyRoomSnapshot["game"]>;
+  selected: SelectedCard;
+  game: GameView;
   player: PlayerState;
   isMyTurn: boolean;
   busy: boolean;
-  selectedColors: GemColor[];
-  onSelectGem: (color: GemColor) => void;
-  onTakeSelectedGems: () => void;
-  onTakeTwo: (color: GemColor) => void;
-  onBuyCard: (source: Extract<GameAction, { type: "buyCard" }> ["source"]) => void;
-  onReserveMarketCard: (level: 1 | 2 | 3, card: DevelopmentCard) => void;
-  onReserveDeck: (level: 1 | 2 | 3) => void;
+  onClose: () => void;
+  onBuy: (source: BuySource) => void;
+  onReserve: (level: 1 | 2 | 3, card: DevelopmentCard) => void;
 }) {
-  const [selectedCard, setSelectedCard] = useState<SelectedCard | null>(null);
-  const playerBonuses = getPlayerBonuses(player);
-  const closeDialogRef = useRef<HTMLButtonElement>(null);
-  const differentColorsAvailable = GEM_COLORS.filter((color) => game.bank[color] > 0).length;
-  const canTakeSelection = selectedColors.length > 0 && (
-    differentColorsAvailable >= 3
-      ? selectedColors.length === 3
-      : selectedColors.length <= differentColorsAvailable
-  );
-  const selectedCardRemainingCost = selectedCard ? getRemainingCost(player, selectedCard.card) : undefined;
-  const selectedCardMissing = selectedCard && selectedCardRemainingCost
-    ? GEM_COLORS.reduce((total, color) => total + Math.max(0, selectedCardRemainingCost[color] - player.gems[color]), 0)
-    : 0;
-  const selectedCardCanAfford = selectedCardMissing <= player.gems.gold;
-  const selectedCardIsAvailable = selectedCard
-    ? selectedCard.source.kind === "market"
-      ? game.market[selectedCard.source.level].some((card) => card.id === selectedCard.card.id)
-      : player.reservedCards.some((card) => card.id === selectedCard.card.id)
-    : false;
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const { card, source } = selected;
+  const remaining = getRemainingCost(player, card);
+  const shortfall = Math.max(0, missingGems(player, card) - player.gems.gold);
+  const available = source.kind === "market"
+    ? game.market[source.level].some((candidate) => candidate.id === card.id)
+    : player.reservedCards.some((candidate) => candidate.id === card.id);
+  const active = game.status === "active";
 
   useEffect(() => {
-    if (!selectedCard) return;
-    closeDialogRef.current?.focus();
+    closeRef.current?.focus();
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSelectedCard(null);
+      if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedCard]);
+  }, [onClose]);
 
   return (
-    <div className="tabletop-scene">
-      <div className="tabletop-frame">
-        <div className="tabletop-felt">
-          <div className="tabletop-inscription"><span>GEM MERCHANT</span><i /> <span>珍宝交易所</span></div>
-
-          <div className="tabletop-layout">
-            <aside className="tabletop-bank" aria-label="左侧公共宝石供应">
-              <div className="tabletop-zone-title"><span>宝石供应</span><small>GEM BANK</small></div>
-              {TOKEN_COLORS.map((color) => (
-                <div className="gem-stack-wrap" key={color}>
-                  <button
-                    type="button"
-                    className={`gem-stack ${selectedColors.includes(color as GemColor) ? "gem-stack-selected" : ""} ${game.bank[color] === 0 ? "gem-stack-empty" : ""}`}
-                    onClick={() => {
-                      if (isMyTurn && !busy && game.bank[color] > 0 && GEM_COLORS.includes(color as GemColor)) {
-                        onSelectGem(color as GemColor);
-                      }
-                    }}
-                    aria-label={`${color === "gold" ? "查看" : "选择或查看"}${colorNames[color]}色宝石，公共区剩余 ${game.bank[color]} 枚`}
-                  >
-                    <span className={`gem-stack-crystal color-${color}`} aria-hidden="true">
-                      <i /><i /><i />
-                    </span>
-                    <span className="gem-stack-count">{game.bank[color]}</span>
-                    <span className="gem-stack-name">{colorNames[color]}色</span>
-                  </button>
-                  {color !== "gold" && (
-                    <button
-                      type="button"
-                      className="gem-stack-take-two"
-                      title={`同色拿取两枚${colorNames[color]}色宝石（该色需剩余至少 4 枚）`}
-                      aria-label={`同色拿取两枚${colorNames[color]}色宝石`}
-                      disabled={!isMyTurn || busy || game.bank[color] < 4 || game.status !== "active"}
-                      onClick={() => onTakeTwo(color)}
-                    >+2</button>
-                  )}
-                </div>
-              ))}
+    <div
+      className="gm-modal-backdrop"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section className="gm-card-dialog" role="dialog" aria-modal="true" aria-labelledby="gm-card-dialog-title">
+        <button ref={closeRef} type="button" className="gm-dialog-close" onClick={onClose} aria-label="关闭卡牌详情">×</button>
+        <div className="gm-card-dialog-art"><CardFace card={card} /></div>
+        <div className="gm-card-dialog-body">
+          <h2 id="gm-card-dialog-title">{source.kind === "reserved" ? "你的预留卡" : `${card.level} 级土地`}</h2>
+          <div className="gm-dialog-row" title="扣除你已有土地后，还需支付的宝石">
+            <span>需付</span>
+            {GEM_COLORS.some((color) => remaining[color] > 0)
+              ? GEM_COLORS.filter((color) => remaining[color] > 0).map((color) => (
+                <i className={`gm-pip gm-c-${color}`} key={color}>{remaining[color]}</i>
+              ))
+              : <em>免费</em>}
+          </div>
+          <div className="gm-dialog-row">
+            <span>持有</span>
+            {TOKEN_COLORS.map((color) => (
+              <i className={`gm-pip gm-c-${color}${player.gems[color] === 0 ? " gm-zero" : ""}`} key={color}>{player.gems[color]}</i>
+            ))}
+          </div>
+          <p className={`gm-dialog-status${available && isMyTurn && shortfall === 0 ? " ok" : ""}`}>
+            {!available ? "这张卡已不在可购买区域。"
+              : !active ? "对局已结束。"
+              : !isMyTurn ? "还没轮到你，可以先看看。"
+              : shortfall > 0 ? `还差 ${shortfall} 枚宝石。`
+              : "可以购买。"}
+          </p>
+          <div className="gm-dialog-actions">
+            <button
+              type="button"
+              className="primary-button"
+              disabled={!available || !isMyTurn || busy || shortfall > 0 || !active}
+              onClick={() => {
+                onBuy(source.kind === "reserved"
+                  ? { kind: "reserved", cardId: card.id }
+                  : { kind: "market", level: source.level, cardId: card.id });
+                onClose();
+              }}
+            >购买</button>
+            {source.kind === "market" && (
               <button
                 type="button"
-                className="tabletop-take-button"
-                disabled={!isMyTurn || busy || !canTakeSelection}
-                onClick={onTakeSelectedGems}
-              >
-                拿取所选 {selectedColors.length > 0 ? `· ${selectedColors.map((color) => colorNames[color]).join(" ")}` : "宝石"}
-              </button>
-              <p className="tabletop-bank-hint">点选不同颜色拿取；点右侧 +2 同色拿 2 枚（该色需剩余至少 4 枚）。</p>
-            </aside>
-
-            <div className="tabletop-market-area">
-              <section className="tabletop-nobles" aria-label="贵族区域">
-                <div className="tabletop-zone-title"><span>贵族来访</span><small>NOBLES · 3 分</small></div>
-                <div className="tabletop-noble-row">
-                  {game.noblesAvailable.map((noble) => (
-                    <button
-                      type="button"
-                      className="tabletop-noble"
-                      key={noble.id}
-                      title={`贵族奖励 ${noble.points} 分；需要${GEM_COLORS.filter((color) => noble.requirements[color] !== undefined).map((color) => `${colorNames[color]}色 ${noble.requirements[color]}`).join("、")}折扣`}
-                      aria-label={`贵族，${noble.points}分`}
-                    >
-                      <span className="tabletop-noble-stone">✦</span>
-                      <strong>{noble.points}<small>分</small></strong>
-                      <span className="tabletop-noble-needs">
-                        {GEM_COLORS.filter((color) => noble.requirements[color] !== undefined).map((color) => (
-                          <i className={`color-${color}`} key={color} title={`${colorNames[color]}色 ${noble.requirements[color]}`}>
-                            {colorNames[color]}{noble.requirements[color]}
-                          </i>
-                        ))}
-                      </span>
-                    </button>
-                  ))}
-                  {game.noblesAvailable.length === 0 && <span className="tabletop-empty-note">贵族已全部到访</span>}
-                </div>
-              </section>
-
-              {([1, 2, 3] as const).map((level) => (
-                <section className={`tabletop-level tabletop-level-${level}`} key={level} aria-label={`${level}级发展卡区域`}>
-                  <div className="tabletop-level-heading">
-                    <span className="tabletop-level-mark">0{level}</span>
-                    <strong>{level} 级发展卡</strong>
-                    <span>牌堆 {game.decks[level].length}</span>
-                  </div>
-                  <div className="tabletop-card-row">
-                    {game.market[level].map((card) => {
-                      const affordable = canAfford(player, card);
-                      return (
-                        <button
-                          type="button"
-                          className={`tabletop-card color-${card.bonusColor}`}
-                          key={card.id}
-                          onClick={() => {
-                            setSelectedCard({ card, source: { kind: "market", level } });
-                          }}
-                          aria-label={`${level}级发展卡，${card.points}分，${colorNames[card.bonusColor]}色折扣`}
-                        >
-                          <span className={`tabletop-card-gem color-${card.bonusColor}`} aria-hidden="true" />
-                          <span className="tabletop-card-level">{level} 级</span>
-                          <strong className="tabletop-card-points">{card.points}<small>分</small></strong>
-                          <span className="tabletop-card-discount">永久折扣 · {colorNames[card.bonusColor]}</span>
-                          <span className="tabletop-card-cost">
-                            {GEM_COLORS.filter((color) => card.cost[color] > 0).map((color) => (
-                              <i className={`cost-${color}`} key={color} title={`${colorNames[color]}色费用 ${card.cost[color]}`}>
-                                <b>{colorNames[color]}</b>{card.cost[color]}
-                              </i>
-                            ))}
-                          </span>
-                          <span className="tabletop-card-affordance">
-                            {game.status !== "active" ? "对局已结束" : !isMyTurn ? "等待回合" : affordable ? "可购买" : "费用不足"}
-                          </span>
-                        </button>
-                      );
-                    })}
-                    {game.market[level].length === 0 && <span className="tabletop-empty-note">此等级明牌已售完</span>}
-                    <button
-                      type="button"
-                      className="tabletop-deck"
-                      disabled={!isMyTurn || busy || player.reservedCards.length >= 3 || game.decks[level].length === 0 || game.status !== "active"}
-                      onClick={() => onReserveDeck(level)}
-                      aria-label={`暗抽并预留${level}级卡牌，剩余 ${game.decks[level].length} 张`}
-                      title={`点击暗抽并预留一张${level}级卡牌；剩余 ${game.decks[level].length} 张`}
-                    >
-                      <span className="deck-card-back"><i>✦</i><b>G</b><i>✦</i></span>
-                      <span className="deck-card-back deck-card-back-shadow" aria-hidden="true" />
-                      <strong>暗抽预留</strong>
-                      <small>{game.decks[level].length} 张</small>
-                    </button>
-                  </div>
-                </section>
-              ))}
-            </div>
-
-            <section className="tabletop-player-inventory" aria-label="本玩家物品信息">
-              <div className="tabletop-inventory-heading">
-                <div><span className="tabletop-inventory-kicker">PLAYER INVENTORY</span><h2>本玩家物品</h2></div>
-                <span className="tabletop-inventory-name">{player.name}</span>
-              </div>
-              <div className="tabletop-inventory-stats">
-                <div><span>总分</span><strong>{getPlayerScore(player)}<small>分</small></strong></div>
-                <div><span>持有宝石</span><strong>{countTokens(player.gems)}<small> / 10</small></strong></div>
-                <div><span>已购发展卡</span><strong>{player.purchasedCards.length}<small> 张</small></strong></div>
-                <div><span>贵族</span><strong>{player.nobles.length}<small> 位</small></strong></div>
-              </div>
-              <div className="tabletop-inventory-gems" aria-label={`持有宝石 ${countTokens(player.gems)} / 10`}>
-                {TOKEN_COLORS.map((color) => (
-                  <div className="inventory-gem" key={color}>
-                    <span className={`tabletop-hand-crystal color-${color}`} aria-hidden="true" />
-                    <span>{colorNames[color]}</span>
-                    <strong>{player.gems[color]}</strong>
-                    {color !== "gold" && (
-                      <em className="land-count" title={`${colorNames[color]}色土地 ${playerBonuses[color]} 块（永久折扣）`}>+{playerBonuses[color]}</em>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div className="tabletop-inventory-assets">
-                <div className="tabletop-inventory-asset-group">
-                  <div className="tabletop-inventory-subhead">已获得贵族</div>
-                  <div className="tabletop-owned-nobles">
-                    {player.nobles.length > 0 ? player.nobles.map((noble) => (
-                      <span className="tabletop-owned-noble" key={noble.id}>✦ {noble.points} 分</span>
-                    )) : <span className="tabletop-inventory-empty">尚未获得贵族</span>}
-                  </div>
-                </div>
-                <div className="tabletop-inventory-asset-group">
-                  <div className="tabletop-inventory-subhead">手牌 / 发展卡 <span>预留 {player.reservedCards.length} / 3</span></div>
-                  <div className="tabletop-inventory-cards">
-                    {player.purchasedCards.slice(-5).map((card) => (
-                      <span className={`tabletop-inventory-card color-${card.bonusColor}`} key={card.id} title={`${card.level}级 · ${card.points}分 · ${colorNames[card.bonusColor]}色折扣`}>
-                        <b>{card.points}</b><i>{colorNames[card.bonusColor]}</i>
-                      </span>
-                    ))}
-                    {player.reservedCards.map((card) => (
-                      <button
-                        type="button"
-                        className={`tabletop-inventory-card reserved color-${card.bonusColor}`}
-                        key={card.id}
-                        title={`${card.level}级预留卡，${card.points}分${player.hiddenReservedCardIds.includes(card.id) ? "（暗抽，其他玩家看不到）" : ""}；点击查看并买入`}
-                        onClick={() => setSelectedCard({ card, source: { kind: "reserved" } })}
-                      >
-                        <b>{card.points}</b><i>{colorNames[card.bonusColor]}</i><small>{player.hiddenReservedCardIds.includes(card.id) ? "暗·预留" : "预留"}</small>
-                      </button>
-                    ))}
-                    {player.purchasedCards.length === 0 && player.reservedCards.length === 0 && <span className="tabletop-inventory-empty">尚无发展卡</span>}
-                  </div>
-                </div>
-              </div>
-            </section>
+                className="quiet-button"
+                disabled={!available || !isMyTurn || busy || player.reservedCards.length >= 3 || !active}
+                onClick={() => {
+                  onReserve(source.level, card);
+                  onClose();
+                }}
+              >预留</button>
+            )}
           </div>
-          <div className="tabletop-edge-mark">珍宝交易所 <span>✦</span> 自创卡组</div>
         </div>
-      </div>
-      <p className="tabletop-help">点击发展卡查看单卡信息和操作；点选宝石拿取。预留明牌会由牌堆补上一张新卡，预留卡只能由本人买入。</p>
+      </section>
+    </div>
+  );
+}
 
-      {selectedCard && (
-        <div
-          className="tabletop-card-dialog-backdrop"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setSelectedCard(null);
-          }}
-        >
-          <section className="tabletop-card-dialog" role="dialog" aria-modal="true" aria-labelledby="tabletop-card-dialog-title">
-            <button
-              ref={closeDialogRef}
-              type="button"
-              className="tabletop-card-dialog-close"
-              onClick={() => setSelectedCard(null)}
-              aria-label="关闭卡牌详情"
-            >×</button>
-            <div className="tabletop-card-dialog-art">
-              <span className={`tabletop-card-dialog-gem color-${selectedCard.card.bonusColor}`} aria-hidden="true" />
-              <span className="tabletop-card-level">{selectedCard.source.kind === "reserved" ? "你的预留卡" : `${selectedCard.card.level} 级发展卡`}</span>
-              <strong>{selectedCard.card.points}<small>分</small></strong>
-              <span className="tabletop-card-dialog-discount">永久折扣 · {colorNames[selectedCard.card.bonusColor]}色</span>
-              <span className="tabletop-card-dialog-cost">
-                {GEM_COLORS.filter((color) => selectedCard.card.cost[color] > 0).map((color) => (
-                  <i className={`cost-${color}`} key={color}>
-                    <b>{colorNames[color]}</b>
-                    <span>费用 {selectedCard.card.cost[color]}</span>
-                    <strong>需付 {selectedCardRemainingCost?.[color] ?? selectedCard.card.cost[color]}</strong>
-                  </i>
-                ))}
-                {GEM_COLORS.every((color) => selectedCard.card.cost[color] === 0) && <span>无需支付</span>}
+/** 整轮结束后的继续投票：倒计时、已确认的玩家、继续/退出按钮。 */
+function RematchPanel({ room, winnerNames, onRematch }: {
+  room: LobbyRoomSnapshot;
+  winnerNames: string[];
+  onRematch: (accept: boolean) => void;
+}) {
+  const rematch = room.rematch;
+  const [deadline, setDeadline] = useState(() => Date.now() + (rematch?.remainingMs ?? 0));
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!rematch) return;
+    setDeadline(Date.now() + rematch.remainingMs);
+    setNow(Date.now());
+  }, [rematch?.remainingMs]);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 500);
+    return () => window.clearInterval(timer);
+  }, []);
+  const secondsLeft = Math.max(0, Math.ceil((deadline - now) / 1000));
+  const accepted = new Set(rematch?.acceptedIds ?? []);
+  const myVote = accepted.has(socket.id ?? "");
+
+  return (
+    <div className="gm-result" role="dialog" aria-labelledby="gm-result-title">
+      <span>本局获胜</span>
+      <strong id="gm-result-title">{winnerNames.join("、") || "平局"}</strong>
+      {rematch && (
+        <div className="gm-rematch">
+          <p>再来一局？{secondsLeft} 秒内未确认视为退出。</p>
+          <div className="gm-rematch-votes">
+            {room.members.map((member) => (
+              <span className={accepted.has(member.id) ? "gm-vote yes" : "gm-vote"} key={member.id}>
+                {member.name}{accepted.has(member.id) ? " ✓" : ""}
               </span>
-            </div>
-            <div className="tabletop-card-dialog-details">
-              <div className="section-kicker">CARD DETAILS</div>
-              <h2 id="tabletop-card-dialog-title">{selectedCard.source.kind === "reserved" ? "你的预留卡" : `${selectedCard.card.level} 级发展卡`}</h2>
-              <p className="tabletop-card-dialog-summary">购买后获得 {selectedCard.card.points} 分，并永久获得一枚{colorNames[selectedCard.card.bonusColor]}色折扣。</p>
-              <div className="tabletop-card-dialog-payment">
-                <span>你的宝石</span>
-                {TOKEN_COLORS.map((color) => (
-                  <i className={`color-${color}`} key={color} title={`${colorNames[color]}色 ${player.gems[color]} 枚`}>
-                    <b>{colorNames[color]}</b>{player.gems[color]}
-                  </i>
-                ))}
-              </div>
-              {!selectedCardIsAvailable ? (
-                <p className="tabletop-card-dialog-status">这张卡已不在你的可购买区域。</p>
-              ) : !isMyTurn ? (
-                <p className="tabletop-card-dialog-status">尚未轮到你行动；可以先查看卡牌，等你的回合再操作。</p>
-              ) : !selectedCardCanAfford ? (
-                <p className="tabletop-card-dialog-status">还差 {Math.max(0, selectedCardMissing - player.gems.gold)} 枚普通宝石或万能宝石才能购买。</p>
-              ) : (
-                <p className="tabletop-card-dialog-status affordable">你当前可以购买这张卡。</p>
-              )}
-              <div className="tabletop-card-dialog-actions">
-                <button
-                  type="button"
-                  className="dialog-action-buy"
-                  disabled={!selectedCardIsAvailable || !isMyTurn || busy || !selectedCardCanAfford || game.status !== "active"}
-                  onClick={() => {
-                    onBuyCard(selectedCard.source.kind === "reserved"
-                      ? { kind: "reserved", cardId: selectedCard.card.id }
-                      : { kind: "market", level: selectedCard.source.level, cardId: selectedCard.card.id });
-                    setSelectedCard(null);
-                  }}
-                >{selectedCard.source.kind === "reserved" ? "买入预留卡" : "购买卡牌"}</button>
-                {selectedCard.source.kind === "market" && (
-                  <button
-                    type="button"
-                    className="dialog-action-reserve"
-                    disabled={!selectedCardIsAvailable || !isMyTurn || busy || player.reservedCards.length >= 3 || game.status !== "active"}
-                    onClick={() => {
-                      if (selectedCard.source.kind !== "market") return;
-                      onReserveMarketCard(selectedCard.source.level, selectedCard.card);
-                      setSelectedCard(null);
-                    }}
-                  >预留卡牌</button>
-                )}
-              </div>
-              <p className="tabletop-card-dialog-footnote">预留后从公共市场移除，并从牌堆补入新卡；预留卡只有你可以购买。</p>
-            </div>
-          </section>
+            ))}
+          </div>
+          <div className="gm-panel-actions">
+            <button type="button" className="quiet-button" onClick={() => onRematch(false)}>退出房间</button>
+            <button type="button" className="primary-button" disabled={myVote} onClick={() => onRematch(true)}>
+              {myVote ? "等待其他玩家" : "继续下一局"}
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -396,18 +359,30 @@ function GameBoard({
   busy,
   error,
   notice,
+  brand,
+  connection,
+  chat,
   onAction,
+  onRematch,
+  onDissolve,
 }: {
   room: LobbyRoomSnapshot;
   busy: boolean;
   error: string;
   notice: string;
+  brand: ReactNode;
+  connection: ReactNode;
+  chat: ReactNode;
   onAction: (action: GameAction) => void;
+  onRematch: (accept: boolean) => void;
+  onDissolve: () => void;
 }) {
   const game = room.game;
   const [selectedColors, setSelectedColors] = useState<GemColor[]>([]);
+  const [selectedCard, setSelectedCard] = useState<SelectedCard | null>(null);
   const [returnPrompt, setReturnPrompt] = useState<ReturnPrompt | null>(null);
   const [returnSelection, setReturnSelection] = useState<TokenCounts>(zeroTokens);
+  const [confirmPrompt, setConfirmPrompt] = useState<ConfirmPrompt | null>(null);
   const scores = useMemo(
     () => new Map((game?.players ?? []).map((candidate) => [candidate.id, getPlayerScore(candidate)])),
     [game?.players],
@@ -426,7 +401,15 @@ function GameBoard({
 
   const player = game.players.find((candidate) => candidate.id === socket.id);
   const activePlayer = game.players[game.activePlayerIndex];
-  const isMyTurn = Boolean(player && activePlayer?.id === player.id && game.status === "active");
+  if (!player || !activePlayer) {
+    return <section className="game-board-error">找不到当前玩家的对局席位。</section>;
+  }
+
+  const currentGame = game;
+  const currentPlayer = player;
+  const active = game.status === "active";
+  const isMyTurn = activePlayer.id === player.id && active;
+  const actionLocked = !isMyTurn || busy || Boolean(returnPrompt);
   const pendingNobles = game.noblesAvailable.filter((noble) => game.pendingNobleIds.includes(noble.id));
   const availableDifferentColors = GEM_COLORS.filter((color) => game.bank[color] > 0).length;
   const selectionCanBeTaken = selectedColors.length > 0 && (
@@ -434,13 +417,9 @@ function GameBoard({
       ? selectedColors.length === 3
       : selectedColors.length <= availableDifferentColors
   );
-
-  if (!player || !activePlayer) {
-    return <section className="game-board-error">找不到当前玩家的对局席位。</section>;
-  }
-
-  const currentGame = game;
-  const currentPlayer = player;
+  const winnerNames = game.winnerIds
+    .map((winnerId) => game.players.find((candidate) => candidate.id === winnerId)?.name)
+    .filter((name): name is string => Boolean(name));
 
   function beginGemAction(action: GemAction, gained: Partial<TokenCounts>) {
     const projected = { ...currentPlayer.gems };
@@ -455,8 +434,15 @@ function GameBoard({
     onAction(action);
   }
 
+  function toggleGem(color: GemColor) {
+    if (actionLocked || currentGame.bank[color] === 0) return;
+    setSelectedColors((current) => current.includes(color)
+      ? current.filter((selected) => selected !== color)
+      : current.length < 3 ? [...current, color] : current);
+  }
+
   function takeSelectedGems() {
-    if (!selectionCanBeTaken || !isMyTurn || busy || returnPrompt) return;
+    if (!selectionCanBeTaken || actionLocked) return;
     const gained = { ...zeroTokens };
     for (const color of selectedColors) gained[color] += 1;
     beginGemAction({ type: "takeGems", colors: [...selectedColors] }, gained);
@@ -464,12 +450,17 @@ function GameBoard({
   }
 
   function takeTwo(color: GemColor) {
-    if (!isMyTurn || busy || returnPrompt || currentGame.bank[color] < 4) return;
-    beginGemAction({ type: "takeGems", colors: [color, color] }, { [color]: 2 });
+    if (actionLocked || currentGame.bank[color] < 4) return;
+    setConfirmPrompt({
+      title: "拿 2 枚同色宝石？",
+      detail: `拿取 2 枚${colorNames[color]}色宝石，本回合结束。`,
+      preview: <><span className={`gm-token gm-c-${color}`}>2</span></>,
+      onConfirm: () => beginGemAction({ type: "takeGems", colors: [color, color] }, { [color]: 2 }),
+    });
   }
 
   function reserveMarketCard(level: 1 | 2 | 3, card: DevelopmentCard) {
-    if (!isMyTurn || busy || returnPrompt || currentPlayer.reservedCards.length >= 3) return;
+    if (actionLocked || currentPlayer.reservedCards.length >= 3) return;
     beginGemAction(
       { type: "reserveCard", source: { kind: "market", level, cardId: card.id } },
       currentGame.bank.gold > 0 ? { gold: 1 } : {},
@@ -477,21 +468,35 @@ function GameBoard({
   }
 
   function reserveDeck(level: 1 | 2 | 3) {
-    if (!isMyTurn || busy || returnPrompt || currentPlayer.reservedCards.length >= 3 || currentGame.decks[level].length === 0) return;
-    beginGemAction(
-      { type: "reserveCard", source: { kind: "deck", level } },
-      currentGame.bank.gold > 0 ? { gold: 1 } : {},
-    );
+    if (actionLocked || currentPlayer.reservedCards.length >= 3 || currentGame.decks[level].length === 0) return;
+    const gainsGold = currentGame.bank.gold > 0;
+    setConfirmPrompt({
+      title: `暗抽预留 ${level} 级土地？`,
+      detail: `从 ${level} 级牌堆顶暗抽一张加入你的预留区（其他玩家看不到内容）${gainsGold ? "，并获得 1 枚金色宝石" : "；金色宝石已拿完，本次不获得"}。`,
+      preview: (
+        <>
+          <span className="gm-card gm-card-back gm-confirm-card"><span className="gm-card-top"><b /><LevelDots level={level} /></span></span>
+          {gainsGold && <span className="gm-token gm-c-gold">+1</span>}
+        </>
+      ),
+      onConfirm: () => beginGemAction(
+        { type: "reserveCard", source: { kind: "deck", level } },
+        gainsGold ? { gold: 1 } : {},
+      ),
+    });
+  }
+
+  function buyCard(source: BuySource) {
+    if (actionLocked) return;
+    onAction({ type: "buyCard", source });
   }
 
   function selectReturn(color: TokenColor, delta: -1 | 1) {
     if (!returnPrompt) return;
     setReturnSelection((current) => {
-      const next = { ...current };
       const nextValue = current[color] + delta;
       if (nextValue < 0 || nextValue > returnPrompt.projected[color]) return current;
-      next[color] = nextValue;
-      return next;
+      return { ...current, [color]: nextValue };
     });
   }
 
@@ -502,160 +507,228 @@ function GameBoard({
     onAction(action);
   }
 
-  function buyCard(source: Extract<GameAction, { type: "buyCard" }> ["source"]) {
-    if (!isMyTurn || busy || returnPrompt) return;
-    onAction({ type: "buyCard", source });
-  }
-
-  const winnerNames = game.winnerIds
-    .map((winnerId) => game.players.find((candidate) => candidate.id === winnerId)?.name)
-    .filter((name): name is string => Boolean(name));
+  const rivals = game.players.filter((candidate) => candidate.id !== player.id);
+  const turnText = !active ? "对局结束" : isMyTurn ? "轮到你行动" : `等待 ${activePlayer.name}`;
 
   return (
-    <section className="table-layout tabletop-mode">
-      <div className="table-heading">
-        <div>
-          <div className="eyebrow"><span className="eyebrow-line" /> 房间 {room.code}</div>
-        </div>
-        <div className={isMyTurn ? "turn-indicator my-turn" : "turn-indicator"}>
-          <span className="turn-dot" />
-          {game.status === "finished" ? "对局结束" : isMyTurn ? "轮到你行动" : `等待 ${activePlayer.name}`}
-        </div>
-      </div>
+    <div className="game-screen">
+      <header className="gm-topbar">
+        {brand}
+        <span className="gm-room-code" title="房间码">{room.code}</span>
+        <span className={isMyTurn ? "turn-indicator my-turn" : "turn-indicator"}>
+          <span className="turn-dot" />{turnText}
+        </span>
+        <span className="gm-feedback" role="status">
+          {error ? <span className="gm-feedback-error">{error}</span> : notice}
+        </span>
+        <GameRules />
+        {room.members.find((member) => member.id === socket.id)?.isHost && (
+          <button type="button" className="gm-dissolve" onClick={onDissolve}>解散房间</button>
+        )}
+        {connection}
+      </header>
 
-      <div className="tabletop-frame opponent-frame">
-        <div className="tabletop-felt opponent-felt">
-          <div className="tabletop-zone-title"><span>其他玩家</span><small>RIVAL MERCHANTS</small></div>
-          <div className="opponent-strip" aria-label="玩家状态">
-            {game.players.filter((candidate) => candidate.id !== player.id).map((candidate) => {
-              const member = room.members.find((item) => item.id === candidate.id);
-              const bonuses = getPlayerBonuses(candidate);
+      <aside className="gm-rivals" aria-label="其他玩家">
+        {rivals.map((candidate) => (
+          <RivalPanel
+            key={candidate.id}
+            player={candidate}
+            member={room.members.find((item) => item.id === candidate.id)}
+            score={scores.get(candidate.id) ?? 0}
+            active={active && candidate.id === activePlayer.id}
+          />
+        ))}
+      </aside>
+
+      <section className="gm-table" aria-label="公共区域">
+        <div className="gm-table-inner">
+          <div className="gm-bank" aria-label="宝石供应">
+            {TOKEN_COLORS.map((color) => {
+              const isGem = color !== "gold";
+              const selected = isGem && selectedColors.includes(color);
+              const count = game.bank[color];
               return (
-                <div className={candidate.id === activePlayer.id ? "opponent-card active-player" : "opponent-card"} key={candidate.id}>
-                  <div className="opponent-avatar">{candidate.name.slice(0, 1).toUpperCase()}</div>
-                  <div className="opponent-info">
-                    <strong>{candidate.name}</strong>
-                    <span>{candidate.purchasedCards.length} 张发展卡 · {candidate.reservedCards.length} 张预留</span>
-                  </div>
-                  <div className="opponent-score"><strong>{scores.get(candidate.id) ?? 0}</strong><span>分</span></div>
-                  <div className="opponent-gem-counts" aria-label={`${candidate.name}持有的宝石数量`}>
-                    {TOKEN_COLORS.map((color) => (
-                      <span
-                        className="opponent-gem-count"
-                        key={color}
-                        title={color === "gold"
-                          ? `金色宝石 ${candidate.gems[color]} 枚`
-                          : `${colorNames[color]}色宝石 ${candidate.gems[color]} 枚，土地 ${bonuses[color]} 块`}
-                      >
-                        <i className={`tabletop-hand-crystal color-${color}`} aria-hidden="true" />
-                        <span>{colorNames[color]}</span>
-                        <strong>{candidate.gems[color]}</strong>
-                        {color !== "gold" && <em className="land-count">+{bonuses[color]}</em>}
-                      </span>
-                    ))}
-                  </div>
-                  {candidate.reservedCards.length > 0 && (
-                    <div className="opponent-reserved" aria-label={`${candidate.name}的预留卡`}>
-                      <span className="opponent-reserved-label">预留</span>
-                      {candidate.reservedCards.map((card) => candidate.hiddenReservedCardIds.includes(card.id) ? (
-                        <span className="opponent-reserved-card hidden" key={card.id} title={`${card.level}级暗抽预留卡，内容不可见`}>
-                          <b>{card.level}级</b><small>暗牌</small>
-                        </span>
-                      ) : (
-                        <span
-                          className={`opponent-reserved-card color-${card.bonusColor}`}
-                          key={card.id}
-                          title={`${card.level}级 · ${card.points}分 · ${colorNames[card.bonusColor]}色折扣；费用 ${GEM_COLORS.filter((color) => card.cost[color] > 0).map((color) => `${colorNames[color]}${card.cost[color]}`).join(" ")}`}
-                        >
-                          <span className="opponent-reserved-head">
-                            <i className={`tabletop-hand-crystal color-${card.bonusColor}`} aria-hidden="true" />
-                            <b>{card.points}<small>分</small></b>
-                            <small>{card.level}级</small>
-                          </span>
-                          <span className="opponent-reserved-cost">
-                            {GEM_COLORS.filter((color) => card.cost[color] > 0).map((color) => (
-                              <i className={`cost-${color}`} key={color}>{colorNames[color]}{card.cost[color]}</i>
-                            ))}
-                          </span>
-                        </span>
-                      ))}
-                    </div>
+                <div className="gm-bank-slot" key={color}>
+                  <button
+                    type="button"
+                    className={`gm-token gm-bank-token gm-c-${color}${selected ? " gm-selected" : ""}${count === 0 ? " gm-zero" : ""}`}
+                    disabled={!isGem || actionLocked || count === 0}
+                    onClick={() => isGem && toggleGem(color)}
+                    title={isGem ? `${colorNames[color]}色宝石，剩余 ${count} 枚；点击选择` : `金色万能宝石，剩余 ${count} 枚（预留卡牌时获得）`}
+                    aria-label={`${colorNames[color]}色宝石，剩余 ${count} 枚`}
+                    aria-pressed={isGem ? selected : undefined}
+                  >{count}</button>
+                  {isGem && (
+                    <button
+                      type="button"
+                      className="gm-take-two"
+                      disabled={actionLocked || count < 4}
+                      onClick={() => takeTwo(color)}
+                      title={`拿 2 枚${colorNames[color]}色宝石（需剩余至少 4 枚）`}
+                      aria-label={`拿 2 枚${colorNames[color]}色宝石`}
+                    >+2</button>
                   )}
-                  {member?.connected === false && <span className="offline-tag">离线</span>}
                 </div>
               );
             })}
+            <button
+              type="button"
+              className="gm-take-button"
+              disabled={actionLocked || !selectionCanBeTaken}
+              onClick={takeSelectedGems}
+              title="拿取所选的不同颜色宝石"
+            >
+              拿取
+              <span className="gm-take-preview" aria-hidden="true">
+                {selectedColors.map((color) => <i className={`gm-c-${color}`} key={color} />)}
+              </span>
+            </button>
           </div>
-        </div>
-      </div>
 
-      {game.status === "finished" ? (
-        <div className="result-banner" role="status">
-          <span className="result-kicker">本局获胜</span>
-          <strong>{winnerNames.join("、") || "平局"}</strong>
-          <span>恭喜赢得这场交易。</span>
-        </div>
-      ) : null}
-
-      <TabletopView
-        game={game}
-        player={player}
-        isMyTurn={isMyTurn}
-        busy={busy || Boolean(returnPrompt)}
-        selectedColors={selectedColors}
-        onSelectGem={(color) => setSelectedColors((current) => current.includes(color)
-          ? current.filter((selected) => selected !== color)
-          : current.length < 3 ? [...current, color] : current)}
-        onTakeSelectedGems={takeSelectedGems}
-        onTakeTwo={takeTwo}
-        onBuyCard={buyCard}
-        onReserveMarketCard={reserveMarketCard}
-        onReserveDeck={reserveDeck}
-      />
-
-      {returnPrompt && (
-        <section className="return-panel" aria-labelledby="return-heading">
-          <div className="return-panel-copy">
-            <span className="section-kicker">资源上限</span>
-            <h2 id="return-heading">请选择归还的宝石</h2>
-            <p>本次行动后超过 10 枚，需要归还 {returnPrompt.required} 枚。已选 {countTokens(returnSelection)} 枚。</p>
-          </div>
-          <div className="return-controls">
-            {TOKEN_COLORS.map((color) => (
-              <div className="return-control" key={color}>
-                <span className={`token-orb color-${color}`} />
-                <span>{colorNames[color]}</span>
-                <button type="button" onClick={() => selectReturn(color, -1)} disabled={returnSelection[color] === 0} aria-label={`少还一枚${colorNames[color]}色宝石`}>−</button>
-                <strong>{returnSelection[color]}</strong>
-                <button type="button" onClick={() => selectReturn(color, 1)} disabled={returnSelection[color] >= returnPrompt.projected[color]} aria-label={`多还一枚${colorNames[color]}色宝石`}>＋</button>
+          <div className="gm-market">
+            <div className="gm-row gm-nobles" aria-label="贵族">
+              {game.noblesAvailable.map((noble) => <NobleTile noble={noble} key={noble.id} />)}
+            </div>
+            {([3, 2, 1] as const).map((level) => (
+              <div className="gm-row" key={level} aria-label={`${level}级土地`}>
+                <button
+                  type="button"
+                  className={`gm-card gm-card-back gm-deck${game.decks[level].length === 0 ? " gm-zero" : ""}`}
+                  disabled={actionLocked || player.reservedCards.length >= 3 || game.decks[level].length === 0}
+                  onClick={() => reserveDeck(level)}
+                  title={`${level}级牌堆剩余 ${game.decks[level].length} 张；点击暗抽预留一张`}
+                  aria-label={`暗抽预留${level}级土地，剩余 ${game.decks[level].length} 张`}
+                >
+                  <span className="gm-card-top"><b /><LevelDots level={level} /></span>
+                  <span className="gm-deck-count">{game.decks[level].length}</span>
+                </button>
+                {game.market[level].map((card) => (
+                  <CardFace
+                    key={card.id}
+                    card={card}
+                    affordable={active && canAfford(player, card)}
+                    onClick={() => setSelectedCard({ card, source: { kind: "market", level } })}
+                  />
+                ))}
+                {Array.from({ length: Math.max(0, 4 - game.market[level].length) }, (_, index) => (
+                  <span className="gm-card gm-card-slot" key={`empty-${index}`} aria-hidden="true" />
+                ))}
               </div>
             ))}
           </div>
-          <div className="return-panel-actions">
-            <button type="button" className="quiet-button" onClick={() => setReturnPrompt(null)}>取消行动</button>
-            <button type="button" className="primary-button" onClick={confirmReturn} disabled={busy || countTokens(returnSelection) !== returnPrompt.required}>确认并继续</button>
+        </div>
+
+        {!active && <RematchPanel room={room} winnerNames={winnerNames} onRematch={onRematch} />}
+      </section>
+
+      <section className={`gm-me${isMyTurn ? " gm-me-turn" : ""}`} aria-label="你的物品">
+        <div className="gm-me-ident">
+          <strong className="gm-me-name">{player.name}</strong>
+          <span className="gm-score gm-score-large" title={`${scores.get(player.id) ?? 0} 分`}>{scores.get(player.id) ?? 0}</span>
+          <span className="gm-gem-total" title="持有宝石总数 / 上限">{countTokens(player.gems)}/10</span>
+        </div>
+        <Holdings player={player} size="large" />
+        <div className="gm-me-reserved" aria-label={`预留卡 ${player.reservedCards.length} / 3`}>
+          {player.reservedCards.map((card) => (
+            <CardFace
+              key={card.id}
+              card={card}
+              affordable={active && canAfford(player, card)}
+              onClick={() => setSelectedCard({ card, source: { kind: "reserved" } })}
+            />
+          ))}
+          {Array.from({ length: 3 - player.reservedCards.length }, (_, index) => (
+            <span className="gm-card gm-card-slot" key={`slot-${index}`} title="空的预留位" aria-hidden="true" />
+          ))}
+        </div>
+        {player.nobles.length > 0 && (
+          <div className="gm-me-nobles">
+            {player.nobles.map((noble) => <NobleTile noble={noble} key={noble.id} />)}
           </div>
-        </section>
+        )}
+      </section>
+
+      <div className="gm-chat">{chat}</div>
+
+      {selectedCard && (
+        <CardDialog
+          selected={selectedCard}
+          game={game}
+          player={player}
+          isMyTurn={isMyTurn}
+          busy={busy || Boolean(returnPrompt)}
+          onClose={() => setSelectedCard(null)}
+          onBuy={buyCard}
+          onReserve={reserveMarketCard}
+        />
       )}
 
-      {pendingNobles.length > 0 && game.status === "active" && isMyTurn && (
-        <section className="noble-choice-panel" aria-labelledby="noble-choice-heading">
-          <div><span className="section-kicker">回合奖励</span><h2 id="noble-choice-heading">请选择一位到访贵族</h2></div>
-          <div className="noble-choice-list">
-            {pendingNobles.map((noble) => (
-              <button type="button" key={noble.id} disabled={busy} onClick={() => onAction({ type: "chooseNoble", nobleId: noble.id })}>
-                <span>✦</span>{noble.points} 分
-                <small>{GEM_COLORS.filter((color) => noble.requirements[color] !== undefined).map((color) => `${colorNames[color]}${noble.requirements[color]}`).join(" · ")}</small>
-              </button>
-            ))}
-          </div>
-        </section>
+      {confirmPrompt && (
+        <div
+          className="gm-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setConfirmPrompt(null);
+          }}
+        >
+          <section className="gm-panel gm-confirm" role="dialog" aria-modal="true" aria-labelledby="gm-confirm-title">
+            <h2 id="gm-confirm-title">{confirmPrompt.title}</h2>
+            <div className="gm-confirm-preview" aria-hidden="true">{confirmPrompt.preview}</div>
+            <p>{confirmPrompt.detail}</p>
+            <div className="gm-panel-actions">
+              <button type="button" className="quiet-button" onClick={() => setConfirmPrompt(null)}>取消</button>
+              <button
+                type="button"
+                className="primary-button"
+                autoFocus
+                onClick={() => {
+                  const confirmed = confirmPrompt;
+                  setConfirmPrompt(null);
+                  confirmed.onConfirm();
+                }}
+              >确认</button>
+            </div>
+          </section>
+        </div>
       )}
 
-      {error && <p className="feedback feedback-error board-feedback" role="alert">{error}</p>}
-      {notice && <p className="feedback feedback-success board-feedback" role="status">{notice}</p>}
-      {!isMyTurn && game.status === "active" && <p className="board-wait-note">等待 {activePlayer.name} 完成本回合。</p>}
-    </section>
+      {returnPrompt && (
+        <div className="gm-modal-backdrop">
+          <section className="gm-panel" role="dialog" aria-modal="true" aria-labelledby="return-heading">
+            <h2 id="return-heading">归还宝石</h2>
+            <p>超过 10 枚，需归还 {returnPrompt.required} 枚（已选 {countTokens(returnSelection)}）。</p>
+            <div className="gm-return-controls">
+              {TOKEN_COLORS.map((color) => (
+                <div className="gm-return-control" key={color}>
+                  <button type="button" onClick={() => selectReturn(color, 1)} disabled={returnSelection[color] >= returnPrompt.projected[color]} aria-label={`多还一枚${colorNames[color]}色宝石`}>＋</button>
+                  <span className={`gm-token gm-c-${color}${returnPrompt.projected[color] === 0 ? " gm-zero" : ""}`} title={`持有 ${returnPrompt.projected[color]} 枚`}>{returnSelection[color]}</span>
+                  <button type="button" onClick={() => selectReturn(color, -1)} disabled={returnSelection[color] === 0} aria-label={`少还一枚${colorNames[color]}色宝石`}>−</button>
+                </div>
+              ))}
+            </div>
+            <div className="gm-panel-actions">
+              <button type="button" className="quiet-button" onClick={() => setReturnPrompt(null)}>取消</button>
+              <button type="button" className="primary-button" onClick={confirmReturn} disabled={busy || countTokens(returnSelection) !== returnPrompt.required}>确认</button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {pendingNobles.length > 0 && active && isMyTurn && (
+        <div className="gm-modal-backdrop">
+          <section className="gm-panel" role="dialog" aria-modal="true" aria-labelledby="noble-choice-heading">
+            <h2 id="noble-choice-heading">选择一位到访贵族</h2>
+            <div className="gm-noble-choices">
+              {pendingNobles.map((noble) => (
+                <button type="button" key={noble.id} disabled={busy} onClick={() => onAction({ type: "chooseNoble", nobleId: noble.id })}>
+                  <NobleTile noble={noble} />
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
+    </div>
   );
 }
 

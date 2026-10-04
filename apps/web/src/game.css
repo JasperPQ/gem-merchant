@@ -1,0 +1,400 @@
+/* 对局界面：电脑屏幕上一屏放下，不需要滚动。 */
+
+/* 颜色令牌：--c 主色，--c2 渐变暗部，--on 叠在主色上的文字色。 */
+.gm-c-white { --c: #f1ece0; --c2: #d6ceb9; --on: #3d3a31; }
+.gm-c-blue { --c: #5a85a6; --c2: #375f7d; --on: #fff; }
+.gm-c-green { --c: #5f9168; --c2: #3e6b48; --on: #fff; }
+.gm-c-red { --c: #b9604f; --c2: #8b4034; --on: #fff; }
+.gm-c-black { --c: #47524c; --c2: #252c29; --on: #f3efe4; }
+.gm-c-gold { --c: #dcb662; --c2: #a97e2f; --on: #3a2c10; }
+
+.game-shell {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.game-screen {
+  height: 100%;
+  display: grid;
+  grid-template-columns: clamp(200px, 17vw, 270px) minmax(0, 1fr) clamp(230px, 20vw, 320px);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "top top top"
+    "rivals table chat"
+    "rivals me chat";
+  gap: 10px;
+  padding: 0 14px 12px;
+}
+
+/* 顶栏 */
+.gm-topbar {
+  grid-area: top;
+  min-width: 0;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid rgba(35, 51, 45, 0.09);
+}
+.gm-topbar .brand-name span { display: none; }
+.gm-topbar .turn-indicator { margin: 0; white-space: nowrap; }
+.gm-room-code { border: 1px solid #e3dfd3; border-radius: 6px; padding: 5px 8px; color: #6f766d; font-size: 11px; font-weight: 700; letter-spacing: 0.14em; }
+.gm-feedback { min-width: 0; flex: 1; overflow: hidden; color: #6c8a72; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.gm-feedback-error { color: #a65d4c; }
+.gm-topbar .game-rules { position: relative; margin: 0; }
+.gm-topbar .game-rules-toggle { padding: 6px 12px; font-size: 11px; }
+.gm-topbar .game-rules-panel {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(880px, calc(100vw - 40px));
+  max-height: calc(100vh - 90px);
+  overflow: auto;
+  background: #fffefa;
+  box-shadow: 0 18px 50px rgba(30, 40, 32, 0.18);
+}
+
+/* 左侧：其他玩家 */
+.gm-rivals { grid-area: rivals; min-height: 0; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+.gm-rival {
+  border: 1px solid rgba(56, 64, 54, 0.1);
+  border-radius: 11px;
+  padding: 9px 10px;
+  background: rgba(255, 254, 250, 0.9);
+}
+.gm-rival-active { border-color: #d6b46c; box-shadow: 0 0 0 2px rgba(214, 180, 108, 0.35); }
+.gm-rival-offline { opacity: 0.6; }
+.gm-rival-head { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+.gm-avatar { width: 24px; height: 24px; flex: 0 0 24px; display: grid; place-items: center; border-radius: 7px; background: #e8eee6; color: #47624e; font-size: 11px; font-weight: 700; }
+.gm-rival-name { min-width: 0; flex: 1; overflow: hidden; color: #3b4940; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.gm-offline { border-radius: 4px; padding: 2px 5px; color: #a65d4c; background: #f6e6e1; font-size: 9px; }
+.gm-score { min-width: 26px; border-radius: 7px; padding: 2px 6px; color: #fff; background: var(--forest); font-size: 14px; font-weight: 700; text-align: center; }
+.gm-rival-extras { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 7px; }
+.gm-rival-extras .gm-card { height: 40px; }
+.gm-noble-mini { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 5px; color: #6b5422; background: linear-gradient(150deg, #f6e7c1, #dcc08a); font-size: 11px; font-weight: 700; }
+
+/* 持有：每色一列，上土地下宝石 */
+.gm-holdings { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.gm-holdings-small { max-width: 250px; }
+.gm-holding { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.gm-land {
+  width: 70%;
+  aspect-ratio: 5 / 6;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 3px;
+  color: var(--on);
+  background: linear-gradient(160deg, var(--c), var(--c2));
+  font-size: 11px;
+  font-weight: 700;
+}
+.gm-land-empty { border: 1px dashed transparent; background: none; }
+.gm-holdings-small .gm-token { width: 22px; height: 22px; font-size: 11px; }
+.gm-holdings-large { align-self: center; width: clamp(260px, 26vw, 380px); gap: 8px; }
+.gm-holdings-large .gm-land { font-size: clamp(13px, 1.9vh, 18px); }
+.gm-holdings-large .gm-token { width: clamp(28px, 4.2vh, 40px); height: clamp(28px, 4.2vh, 40px); font-size: clamp(13px, 1.9vh, 17px); }
+
+/* 宝石：圆形，颜色即种类，中间数字 */
+.gm-token {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.75);
+  border-radius: 50%;
+  color: var(--on);
+  background: radial-gradient(circle at 35% 30%, var(--c), var(--c2));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  font-weight: 700;
+  line-height: 1;
+}
+.gm-c-white.gm-token { border-color: #cfc7b2; }
+.gm-zero { opacity: 0.32; }
+
+/* 中间：公共区域 */
+.gm-table {
+  grid-area: table;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  container-type: size;
+  border: 8px solid #6f4f37;
+  border-radius: 18px;
+  padding: 12px 14px;
+  background: radial-gradient(ellipse at 50% 40%, #2c5a46, #1d3e31 75%);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.35), 0 10px 26px rgba(40, 30, 20, 0.18);
+}
+
+/* 市场宽度按高度推算（5 张卡 + 间距），让宝石列紧贴卡片、整体居中。 */
+.gm-table-inner {
+  height: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, calc((100cqh - 24px) * 0.962 + 32px));
+  justify-content: center;
+  gap: 18px;
+}
+
+.gm-bank { display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; gap: 4px; }
+.gm-bank-slot { position: relative; }
+.gm-bank-token {
+  width: clamp(36px, 6.4vh, 58px);
+  height: clamp(36px, 6.4vh, 58px);
+  cursor: pointer;
+  font: inherit;
+  font-size: clamp(14px, 2.3vh, 21px);
+  font-weight: 700;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.gm-bank-token:hover:not(:disabled) { transform: translateY(-2px); }
+.gm-bank-token:disabled { cursor: default; }
+.gm-bank-token:disabled:not(.gm-zero) { opacity: 1; }
+.gm-bank-token.gm-zero { opacity: 0.45; }
+.gm-bank-token.gm-selected { box-shadow: 0 0 0 3px #f4d27c, 0 0 16px rgba(244, 210, 124, 0.8); transform: translateY(-2px); }
+.gm-take-two {
+  position: absolute;
+  top: -4px;
+  right: -14px;
+  border: 1px solid rgba(244, 210, 124, 0.7);
+  border-radius: 8px;
+  padding: 1px 4px;
+  color: #f4dfa8;
+  background: rgba(20, 40, 31, 0.9);
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 700;
+}
+.gm-take-two:disabled { display: none; }
+.gm-take-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(244, 210, 124, 0.7);
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: #2b2213;
+  background: linear-gradient(180deg, #f1d58e, #cfa75a);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+}
+.gm-take-button:disabled { cursor: default; opacity: 0.35; }
+.gm-take-preview { display: flex; gap: 3px; min-height: 8px; }
+.gm-take-preview i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2); }
+
+/* 贵族一行 + 三行土地，卡片尺寸跟随可用高度与宽度 */
+.gm-market {
+  container-type: size;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 0.72fr) repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.gm-row { min-height: 0; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.gm-row > .gm-card { height: min(100%, calc((100cqw - 40px) / 5 * 88 / 63)); }
+
+/* 土地卡：容器查询单位让内部随卡片大小缩放 */
+.gm-card {
+  container-type: size;
+  position: relative;
+  height: 100%;
+  aspect-ratio: 63 / 88;
+  flex: 0 0 auto;
+  display: block;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 7px;
+  padding: 0;
+  color: var(--on);
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.18), transparent 45%),
+    linear-gradient(160deg, var(--c), var(--c2));
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+  font: inherit;
+  text-align: left;
+}
+button.gm-card { cursor: pointer; transition: transform 120ms ease, box-shadow 120ms ease; }
+button.gm-card:hover:not(:disabled) { transform: translateY(-3px); }
+.gm-affordable { box-shadow: 0 0 0 2px #f4d27c, 0 0 14px rgba(244, 210, 124, 0.75); }
+.gm-card-top { position: absolute; top: 5cqh; right: 7cqh; left: 7cqh; display: flex; align-items: flex-start; justify-content: space-between; }
+.gm-card-points { font-size: 24cqh; font-weight: 800; line-height: 0.9; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
+.gm-c-white .gm-card-points { text-shadow: none; }
+.gm-level { display: flex; gap: 2.5cqh; padding-top: 2cqh; }
+.gm-level i { width: 5cqh; height: 5cqh; border-radius: 50%; background: currentColor; opacity: 0.85; }
+.gm-card-cost { position: absolute; bottom: 5cqh; left: 6cqh; display: flex; flex-direction: column-reverse; gap: 2cqh; }
+.gm-card-cost .gm-pip { width: 14cqh; height: 14cqh; border-width: 0.8cqh; font-size: 9.5cqh; }
+.gm-card-mini .gm-card-points { font-size: 40cqh; }
+.gm-card-mini .gm-level i { width: 8cqh; height: 8cqh; }
+
+.gm-pip {
+  width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  color: var(--on);
+  background: var(--c);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1;
+}
+.gm-c-white.gm-pip { border-color: #bdb39b; }
+
+.gm-card-back {
+  --on: #f1ddb0;
+  border-color: #c9a75f;
+  background:
+    repeating-linear-gradient(45deg, rgba(244, 210, 124, 0.08) 0 6px, transparent 6px 12px),
+    linear-gradient(160deg, #3b6a52, #1c3a2d);
+}
+.gm-deck:disabled { cursor: default; }
+.gm-deck-count { position: absolute; inset: 0; display: grid; place-items: center; font-size: 26cqh; font-weight: 800; }
+.gm-card-slot { border: 1px dashed rgba(244, 221, 168, 0.35); background: none; box-shadow: none; }
+
+/* 贵族：分数 + 所需土地（卡形色块） */
+.gm-noble {
+  container-type: size;
+  position: relative;
+  height: min(100%, calc((100cqw - 40px) / 5));
+  aspect-ratio: 1;
+  display: block;
+  border: 1px solid #b89553;
+  border-radius: 8px;
+  color: #5a4520;
+  background: linear-gradient(150deg, #f8ecca, #dcc08a);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+}
+.gm-noble > b { position: absolute; top: 6cqh; left: 9cqh; font-size: 30cqh; font-weight: 800; line-height: 1; }
+.gm-noble-needs { position: absolute; bottom: 7cqh; left: 9cqh; display: flex; gap: 4cqh; }
+.gm-need {
+  width: 18cqh;
+  height: 23cqh;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+  color: var(--on);
+  background: linear-gradient(160deg, var(--c), var(--c2));
+  font-size: 14cqh;
+  font-style: normal;
+  font-weight: 800;
+}
+.gm-row.gm-nobles > .gm-noble { height: min(100%, calc((100cqw - 40px) / 5)); }
+
+.gm-result {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #dfd2b5;
+  border-radius: 14px;
+  padding: 18px 34px;
+  color: #a08757;
+  background: #fbf7ec;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  transform: translate(-50%, -50%);
+}
+.gm-rematch { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 8px; letter-spacing: 0; }
+.gm-rematch p { margin: 0; color: #6f766d; font-size: 12px; font-weight: 500; }
+.gm-rematch-votes { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.gm-vote { border-radius: 12px; padding: 3px 10px; color: #8a8f87; background: #f1efe7; font-size: 12px; font-weight: 500; }
+.gm-vote.yes { color: #3f6b49; background: #e6f0e4; }
+.gm-rematch .gm-panel-actions { margin-top: 4px; }
+.gm-result strong { color: #3f5141; font-family: "Noto Serif SC", Georgia, serif; font-size: 26px; letter-spacing: 0; }
+
+/* 下方：本玩家 */
+.gm-me {
+  grid-area: me;
+  min-width: 0;
+  height: clamp(120px, 19vh, 180px);
+  display: flex;
+  align-items: stretch;
+  gap: clamp(14px, 2vw, 28px);
+  border: 1px solid rgba(56, 64, 54, 0.1);
+  border-radius: 14px;
+  padding: 12px 16px;
+  background: rgba(255, 254, 250, 0.92);
+}
+.gm-me-turn { border-color: #d6b46c; box-shadow: 0 0 0 2px rgba(214, 180, 108, 0.35); }
+.gm-me-ident { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 6px; min-width: 70px; }
+.gm-me-name { max-width: 120px; overflow: hidden; color: #3b4940; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.gm-score-large { min-width: 44px; padding: 4px 10px; font-size: 24px; }
+.gm-gem-total { color: #8b8f86; font-size: 12px; font-weight: 600; }
+.gm-me-reserved { display: flex; align-items: stretch; gap: 8px; }
+.gm-me-reserved .gm-card-slot { border-color: #d9d5c8; }
+.gm-me-nobles { display: flex; align-items: center; gap: 6px; }
+.gm-me-nobles .gm-noble { height: 64%; }
+
+/* 右侧：房间对话撑满高度 */
+.gm-chat { grid-area: chat; min-height: 0; display: flex; }
+.gm-chat .room-chat { flex: 1; min-height: 0; display: flex; flex-direction: column; margin: 0; }
+.gm-chat .room-chat-list { height: auto; flex: 1; min-height: 0; }
+
+.gm-dissolve { border: 1px solid #e8cfc8; border-radius: 16px; padding: 6px 12px; color: #a5574a; background: #fbf3f0; cursor: pointer; font: inherit; font-size: 11px; white-space: nowrap; }
+.gm-dissolve:hover { background: #f6e3dd; }
+
+/* 弹窗 */
+.gm-modal-backdrop { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; padding: 24px; background: rgba(17, 27, 21, 0.62); backdrop-filter: blur(5px); }
+.gm-panel, .gm-card-dialog { position: relative; border: 1px solid #d9c9a7; border-radius: 15px; padding: 22px 24px; color: #354138; background: #fffdf7; box-shadow: 0 25px 70px rgba(0, 0, 0, 0.3); }
+.gm-panel h2, .gm-card-dialog h2 { margin: 0 0 6px; color: #26392e; font-family: "Noto Serif SC", Georgia, serif; font-size: 20px; font-weight: 600; }
+.gm-panel p { margin: 0; color: #7b8077; font-size: 12px; }
+.gm-panel-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.gm-panel-actions .primary-button { width: auto; min-height: 36px; margin: 0; padding: 0 18px; }
+.gm-confirm { width: min(380px, 100%); }
+.gm-confirm-preview { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 14px 0; }
+.gm-confirm-preview .gm-token { width: 46px; height: 46px; font-size: 18px; }
+.gm-confirm-card { height: 96px; }
+.gm-return-controls { display: flex; gap: 12px; margin-top: 16px; }
+.gm-return-control { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.gm-return-control .gm-token { width: 38px; height: 38px; font-size: 15px; }
+.gm-return-control button { width: 26px; height: 22px; border: 1px solid #e4e2d9; border-radius: 5px; color: #647267; background: #fff; cursor: pointer; line-height: 1; }
+.gm-return-control button:disabled { cursor: default; opacity: 0.35; }
+.gm-noble-choices { display: flex; gap: 12px; margin-top: 14px; }
+.gm-noble-choices button { height: 110px; border: 0; padding: 0; background: none; cursor: pointer; }
+.gm-noble-choices button:hover:not(:disabled) { transform: translateY(-3px); }
+.gm-noble-choices .gm-noble { height: 100%; }
+
+.gm-card-dialog { width: min(560px, 100%); display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 24px; }
+.gm-card-dialog-art { height: 250px; }
+.gm-card-dialog-art .gm-card { box-shadow: 0 10px 26px rgba(0, 0, 0, 0.25); }
+.gm-card-dialog-body { display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+.gm-dialog-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.gm-dialog-row > span { width: 34px; color: #8b8f86; font-size: 11px; }
+.gm-dialog-row em { color: #4c7955; font-size: 12px; font-style: normal; }
+.gm-dialog-status { margin: 0; color: #986b4f; font-size: 12px; }
+.gm-dialog-status.ok { color: #4c7955; }
+.gm-dialog-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.gm-dialog-actions .primary-button { min-height: 38px; margin: 0; }
+.gm-dialog-close { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border: 1px solid #e1dac9; border-radius: 50%; color: #657064; background: #fffdf6; cursor: pointer; font-size: 17px; }
+
+/* 窄屏或矮屏：退回上下排列，允许滚动 */
+@media (max-width: 1000px), (max-height: 600px) {
+  .game-shell { height: auto; overflow: visible; }
+  .game-screen {
+    height: auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas: "top" "table" "me" "rivals" "chat";
+  }
+  .gm-topbar { flex-wrap: wrap; height: auto; padding: 8px 0; }
+  .gm-table { height: min(130vw, 640px); }
+  .gm-holdings-large { width: min(100%, 380px); }
+  .gm-me { height: auto; flex-wrap: wrap; }
+  .gm-me-reserved { height: 110px; }
+  .gm-rivals { overflow: visible; }
+  .gm-chat { height: 360px; }
+}

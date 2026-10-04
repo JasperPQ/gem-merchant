@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { LobbyRoomSnapshot } from "@gem-merchant/game";
 import { socket } from "./socket.js";
+import type { VoiceControls } from "./voice.js";
+import VoiceBar from "./VoiceBar.js";
 
 const CHAT_MAX_LENGTH = 200;
 
@@ -9,7 +11,7 @@ function formatTime(value: string): string {
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
-function RoomChat({ room }: { room: LobbyRoomSnapshot }) {
+function RoomChat({ room, voice }: { room: LobbyRoomSnapshot; voice: VoiceControls }) {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -44,6 +46,7 @@ function RoomChat({ room }: { room: LobbyRoomSnapshot }) {
         <h2 id="room-chat-title">房间对话</h2>
         <span>仅房间内可见 · 对局结束后自动清空</span>
       </div>
+      <VoiceBar room={room} voice={voice} />
       <div className="room-chat-list" ref={listRef} aria-live="polite">
         {messages.length > 0 ? messages.map((entry) => (
           <div className={entry.senderId === socket.id ? "room-chat-message mine" : "room-chat-message"} key={entry.id}>
