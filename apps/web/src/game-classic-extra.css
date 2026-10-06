@@ -1,0 +1,5 @@
+/* 原始版本的样式表 game-classic.css 保持改版前的原样；这里只补后来新加的内容需要的规则。 */
+
+/* 五种颜色都要的贵族（N-11）：条件排得紧一点，免得超出右边 */
+.gm-noble-needs:has(> :nth-child(5)) { left: 6cqh; gap: 2.5cqh; }
+.gm-noble-needs:has(> :nth-child(5)) .gm-need { width: 15cqh; }

@@ -1,0 +1,407 @@
+{"time": "2026-10-06 10:24:29", "name": "L1-36", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 25.8}
+{"time": "2026-10-06 10:24:56", "name": "L2-09", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 27.1}
+{"time": "2026-10-06 10:25:37", "name": "L3-16", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 40.8}
+{"time": "2026-10-06 10:26:25", "name": "N-08", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 48.9}
+{"time": "2026-10-06 10:27:02", "name": "L1-36", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 37.1}
+{"time": "2026-10-06 10:27:38", "name": "L2-09", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 36.0}
+{"time": "2026-10-06 10:28:18", "name": "L3-16", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 39.8}
+{"time": "2026-10-06 10:28:53", "name": "N-08", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 34.7}
+{"time": "2026-10-06 10:29:25", "name": "L1-36", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 31.6}
+{"time": "2026-10-06 10:30:07", "name": "L2-09", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 42.4}
+{"time": "2026-10-06 10:30:38", "name": "L3-16", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 30.6}
+{"time": "2026-10-06 10:31:03", "name": "N-08", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 25.4}
+{"time": "2026-10-06 10:54:08", "name": "L1-01-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 8.9}
+{"time": "2026-10-06 10:54:33", "name": "L1-01-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 33.4}
+{"time": "2026-10-06 10:55:04", "name": "L1-17-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 31.3}
+{"time": "2026-10-06 10:56:03", "name": "L1-17-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 115.2}
+{"time": "2026-10-06 10:56:49", "name": "L1-01-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 18.1}
+{"time": "2026-10-06 10:56:50", "name": "L1-01-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 19.0}
+{"time": "2026-10-06 10:57:17", "name": "L1-02-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 14.5}
+{"time": "2026-10-06 10:57:39", "name": "L1-02-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 36.6}
+{"time": "2026-10-06 10:58:08", "name": "L1-03-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 29.0}
+{"time": "2026-10-06 10:58:43", "name": "L1-04-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 34.1}
+{"time": "2026-10-06 10:59:13", "name": "L1-04-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 30.1}
+{"time": "2026-10-06 10:59:43", "name": "L1-05-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 29.8}
+{"time": "2026-10-06 11:00:10", "name": "L1-05-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 27.7}
+{"time": "2026-10-06 11:00:48", "name": "L1-06-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 37.6}
+{"time": "2026-10-06 11:01:24", "name": "L1-06-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 35.8}
+{"time": "2026-10-06 11:01:56", "name": "L1-07-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 32.5}
+{"time": "2026-10-06 11:02:30", "name": "L1-07-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 34.3}
+{"time": "2026-10-06 11:03:02", "name": "L1-08-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "generations", "generations": 1.0}, "seconds": 31.9}
+{"time": "2026-10-06 11:03:21", "name": "L1-03-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005885647323396471}, "seconds": 363.5}
+{"time": "2026-10-06 11:03:58", "name": "L1-03-v2c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007097845792770386}, "seconds": 25.3}
+{"time": "2026-10-06 11:04:21", "name": "L1-09-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006136476702160306}, "seconds": 60.0}
+{"time": "2026-10-06 11:04:53", "name": "L1-09-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006424193037880792}, "seconds": 32.1}
+{"time": "2026-10-06 11:05:26", "name": "L1-10-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006338506725099352}, "seconds": 32.6}
+{"time": "2026-10-06 11:06:07", "name": "L1-10-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007485300064086915}, "seconds": 41.0}
+{"time": "2026-10-06 11:06:35", "name": "L1-11-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005960340738296509}, "seconds": 28.2}
+{"time": "2026-10-06 11:07:05", "name": "L1-11-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0062729723188612195}, "seconds": 30.0}
+{"time": "2026-10-06 11:07:51", "name": "L1-12-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006591322448518541}, "seconds": 45.7}
+{"time": "2026-10-06 11:08:23", "name": "L1-12-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006028744220733642}, "seconds": 32.2}
+{"time": "2026-10-06 11:08:46", "name": "L1-13-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006511134995354547}, "seconds": 23.5}
+{"time": "2026-10-06 11:09:07", "name": "L1-13-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006513863245646159}, "seconds": 20.6}
+{"time": "2026-10-06 11:09:48", "name": "L1-14-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0069367838700612385}, "seconds": 40.7}
+{"time": "2026-10-06 11:10:05", "name": "L1-03-v2c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006245920923021104}, "seconds": 367.2}
+{"time": "2026-10-06 11:10:06", "name": "L1-14-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005891986714469062}, "seconds": 18.7}
+{"time": "2026-10-06 11:10:33", "name": "L1-05-v2c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005992662668228149}, "seconds": 28.1}
+{"time": "2026-10-06 11:11:08", "name": "L1-05-v2c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006560747226079305}, "seconds": 34.6}
+{"time": "2026-10-06 11:12:08", "name": "L1-15-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006377277321285672}, "seconds": 121.8}
+{"time": "2026-10-06 11:12:28", "name": "L1-03-v3c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006384309503767225}, "seconds": 34.6}
+{"time": "2026-10-06 11:13:04", "name": "L1-05-v3c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006467697064081828}, "seconds": 36.0}
+{"time": "2026-10-06 11:13:24", "name": "L1-16-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006030279636383057}, "seconds": 30.3}
+{"time": "2026-10-06 11:14:04", "name": "L1-01-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005978221072090997}, "seconds": 14.2}
+{"time": "2026-10-06 11:14:33", "name": "L1-01-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006041038062837389}, "seconds": 29.1}
+{"time": "2026-10-06 11:15:05", "name": "L1-02-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00647410708003574}, "seconds": 32.4}
+{"time": "2026-10-06 11:15:41", "name": "L1-02-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006438501967324151}, "seconds": 35.8}
+{"time": "2026-10-06 11:16:15", "name": "L1-03-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00667090998755561}, "seconds": 34.5}
+{"time": "2026-10-06 11:16:35", "name": "L1-03-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005933419942855835}, "seconds": 19.4}
+{"time": "2026-10-06 11:17:08", "name": "L1-04-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0065200311607784694}, "seconds": 32.9}
+{"time": "2026-10-06 11:17:43", "name": "L1-04-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007124776972664728}, "seconds": 35.1}
+{"time": "2026-10-06 11:18:17", "name": "L1-05-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006697382767995199}, "seconds": 34.6}
+{"time": "2026-10-06 11:18:59", "name": "L1-05-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007524229023191664}, "seconds": 41.7}
+{"time": "2026-10-06 11:19:29", "name": "L1-06-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006242702272203233}, "seconds": 29.6}
+{"time": "2026-10-06 11:20:09", "name": "L1-06-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006516067398919}, "seconds": 40.7}
+{"time": "2026-10-06 11:20:56", "name": "L1-07-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0072042704158359104}, "seconds": 47.0}
+{"time": "2026-10-06 11:21:31", "name": "L1-07-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006309738000233968}, "seconds": 34.1}
+{"time": "2026-10-06 11:22:08", "name": "L1-08-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00656438856654697}, "seconds": 36.9}
+{"time": "2026-10-06 11:22:39", "name": "L1-08-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0063932573530409076}, "seconds": 31.6}
+{"time": "2026-10-06 11:23:16", "name": "L1-09-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006607620239257813}, "seconds": 36.7}
+{"time": "2026-10-06 11:23:46", "name": "L1-09-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00624698445532057}, "seconds": 29.8}
+{"time": "2026-10-06 11:24:25", "name": "L1-15-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006840958197911581}, "seconds": 39.7}
+{"time": "2026-10-06 11:24:57", "name": "L1-16-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006209777805540297}, "seconds": 31.8}
+{"time": "2026-10-06 11:25:33", "name": "L1-25-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006849429925282796}, "seconds": 35.8}
+{"time": "2026-10-06 11:26:04", "name": "L1-25-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006220474772983127}, "seconds": 31.2}
+{"time": "2026-10-06 11:26:39", "name": "L1-26-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006765412833955553}, "seconds": 35.3}
+{"time": "2026-10-06 11:27:22", "name": "L1-26-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007733272658454048}, "seconds": 43.0}
+{"time": "2026-10-06 11:27:49", "name": "L1-27-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0060094969007704}, "seconds": 26.7}
+{"time": "2026-10-06 11:28:17", "name": "L1-27-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0059686505794525144}, "seconds": 28.0}
+{"time": "2026-10-06 11:28:48", "name": "L1-28-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006500287824206882}, "seconds": 31.1}
+{"time": "2026-10-06 11:29:17", "name": "L1-28-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006115797307756212}, "seconds": 28.8}
+{"time": "2026-10-06 11:29:42", "name": "L1-29-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006427707486682468}, "seconds": 24.4}
+{"time": "2026-10-06 11:30:07", "name": "L1-29-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005798474152882894}, "seconds": 25.5}
+{"time": "2026-10-06 11:30:36", "name": "L1-30-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006114532815085517}, "seconds": 29.0}
+{"time": "2026-10-06 11:31:05", "name": "L1-30-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0061456647713979086}, "seconds": 29.4}
+{"time": "2026-10-06 11:31:39", "name": "L1-31-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006395152992672391}, "seconds": 33.2}
+{"time": "2026-10-06 11:32:05", "name": "L1-31-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005888795799679226}, "seconds": 26.7}
+{"time": "2026-10-06 11:32:37", "name": "L1-32-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006395128832923041}, "seconds": 32.0}
+{"time": "2026-10-06 11:33:00", "name": "L1-32-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006316482941309611}, "seconds": 22.5}
+{"time": "2026-10-06 11:33:34", "name": "L1-33-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006506094137827555}, "seconds": 34.4}
+{"time": "2026-10-06 11:34:06", "name": "L1-33-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0061712440119849315}, "seconds": 31.6}
+{"time": "2026-10-06 11:34:44", "name": "L1-34-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007013930320739746}, "seconds": 38.2}
+{"time": "2026-10-06 11:35:21", "name": "L1-34-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007012454191843669}, "seconds": 36.7}
+{"time": "2026-10-06 11:35:51", "name": "L1-35-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006194290081659953}, "seconds": 30.2}
+{"time": "2026-10-06 11:36:16", "name": "L1-35-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005733947277069092}, "seconds": 25.1}
+{"time": "2026-10-06 11:36:41", "name": "L1-36-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005693927102618747}, "seconds": 24.7}
+{"time": "2026-10-06 11:37:06", "name": "L1-36-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00578559062216017}, "seconds": 24.7}
+{"time": "2026-10-06 11:37:39", "name": "L1-37-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006723257197274102}, "seconds": 33.5}
+{"time": "2026-10-06 11:38:21", "name": "L1-37-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007269532256656223}, "seconds": 42.1}
+{"time": "2026-10-06 11:39:09", "name": "L1-38-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007951739973492092}, "seconds": 47.4}
+{"time": "2026-10-06 11:39:22", "name": "L1-38-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006056534343295627}, "seconds": 13.4}
+{"time": "2026-10-06 11:39:52", "name": "L1-39-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005905756579505073}, "seconds": 30.2}
+{"time": "2026-10-06 11:40:22", "name": "L1-39-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00625286070505778}, "seconds": 30.1}
+{"time": "2026-10-06 11:40:54", "name": "L1-40-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00605466636021932}, "seconds": 32.1}
+{"time": "2026-10-06 11:41:33", "name": "L1-40-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006624381118350559}, "seconds": 38.9}
+{"time": "2026-10-06 11:42:04", "name": "L1-18-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006272465176052518}, "seconds": 30.4}
+{"time": "2026-10-06 11:42:39", "name": "L1-18-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006856687943140666}, "seconds": 35.0}
+{"time": "2026-10-06 11:43:17", "name": "L1-19-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007089184840520223}, "seconds": 37.8}
+{"time": "2026-10-06 11:43:45", "name": "L1-19-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005922048727671305}, "seconds": 28.1}
+{"time": "2026-10-06 11:44:19", "name": "L1-20-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006684155835045709}, "seconds": 34.0}
+{"time": "2026-10-06 11:44:55", "name": "L1-20-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006752037631140815}, "seconds": 36.6}
+{"time": "2026-10-06 11:45:33", "name": "L1-21-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006797487444347806}, "seconds": 37.3}
+{"time": "2026-10-06 11:46:02", "name": "L1-21-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006224845462375218}, "seconds": 29.6}
+{"time": "2026-10-06 11:46:35", "name": "L1-22-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006542098204294841}, "seconds": 33.2}
+{"time": "2026-10-06 11:47:10", "name": "L1-22-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006740532928042942}, "seconds": 34.5}
+{"time": "2026-10-06 11:47:27", "name": "L1-23-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006297936942842272}, "seconds": 16.8}
+{"time": "2026-10-06 11:48:05", "name": "L1-23-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007034588893254598}, "seconds": 38.6}
+{"time": "2026-10-06 11:48:30", "name": "L1-24-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005722974724239774}, "seconds": 24.5}
+{"time": "2026-10-06 11:49:09", "name": "L1-24-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0062324992550743955}, "seconds": 39.3}
+{"time": "2026-10-06 11:49:38", "name": "L2-01-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006195195224550035}, "seconds": 29.1}
+{"time": "2026-10-06 11:50:08", "name": "L2-01-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006258005142211915}, "seconds": 29.6}
+{"time": "2026-10-06 11:50:29", "name": "L2-02-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006624864207373725}, "seconds": 20.8}
+{"time": "2026-10-06 11:51:00", "name": "L2-02-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006133180644777086}, "seconds": 31.5}
+{"time": "2026-10-06 11:51:35", "name": "L2-03-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0064986670811971025}, "seconds": 34.6}
+{"time": "2026-10-06 11:52:11", "name": "L2-03-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006545912742614747}, "seconds": 35.9}
+{"time": "2026-10-06 11:52:42", "name": "L2-04-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0062506637308332655}, "seconds": 31.3}
+{"time": "2026-10-06 11:53:10", "name": "L2-04-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006066102557712131}, "seconds": 28.3}
+{"time": "2026-10-06 11:53:47", "name": "L2-05-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006974321179919773}, "seconds": 36.5}
+{"time": "2026-10-06 11:54:28", "name": "L2-05-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007060691992441814}, "seconds": 41.1}
+{"time": "2026-10-06 11:54:54", "name": "L2-06-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005808291726642185}, "seconds": 26.0}
+{"time": "2026-10-06 11:55:25", "name": "L2-06-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006380863136715359}, "seconds": 31.2}
+{"time": "2026-10-06 11:55:54", "name": "L2-07-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006248471869362725}, "seconds": 29.1}
+{"time": "2026-10-06 11:56:24", "name": "L2-07-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006159945064120822}, "seconds": 29.8}
+{"time": "2026-10-06 11:56:37", "name": "L2-08-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006069306294123332}, "seconds": 12.7}
+{"time": "2026-10-06 11:57:28", "name": "L2-08-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007925771289401584}, "seconds": 51.2}
+{"time": "2026-10-06 11:57:59", "name": "L2-09-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006365927378336589}, "seconds": 30.9}
+{"time": "2026-10-06 11:58:31", "name": "L2-09-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006473021189371745}, "seconds": 32.2}
+{"time": "2026-10-06 11:59:00", "name": "L2-10-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006274271647135417}, "seconds": 29.3}
+{"time": "2026-10-06 11:59:34", "name": "L2-10-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006598337941699558}, "seconds": 34.1}
+{"time": "2026-10-06 12:00:19", "name": "L2-11-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007639159652921889}, "seconds": 44.9}
+{"time": "2026-10-06 12:00:56", "name": "L2-11-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006828588856591119}, "seconds": 37.1}
+{"time": "2026-10-06 12:01:50", "name": "L2-12-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.008736138529247709}, "seconds": 54.0}
+{"time": "2026-10-06 12:02:17", "name": "L2-12-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0060056008762783475}, "seconds": 27.1}
+{"time": "2026-10-06 12:02:48", "name": "L2-19-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006330833911895753}, "seconds": 30.9}
+{"time": "2026-10-06 12:03:23", "name": "L2-19-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006373908122380575}, "seconds": 34.7}
+{"time": "2026-10-06 12:03:52", "name": "L2-20-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006213420020209418}, "seconds": 28.9}
+{"time": "2026-10-06 12:04:31", "name": "L2-20-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007264490048090617}, "seconds": 39.3}
+{"time": "2026-10-06 12:05:02", "name": "L2-21-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006363199631373087}, "seconds": 30.7}
+{"time": "2026-10-06 12:05:33", "name": "L2-21-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006037425968382094}, "seconds": 30.7}
+{"time": "2026-10-06 12:06:03", "name": "L2-22-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006219025558895535}, "seconds": 30.1}
+{"time": "2026-10-06 12:06:37", "name": "L2-22-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00654628308614095}, "seconds": 33.8}
+{"time": "2026-10-06 12:07:03", "name": "L2-23-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006020180967119005}, "seconds": 26.7}
+{"time": "2026-10-06 12:07:29", "name": "L2-23-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005817661232418485}, "seconds": 25.9}
+{"time": "2026-10-06 12:08:21", "name": "L2-24-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.008474288569556343}, "seconds": 52.2}
+{"time": "2026-10-06 12:08:49", "name": "L2-24-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00592427494790819}, "seconds": 28.0}
+{"time": "2026-10-06 12:09:20", "name": "L2-25-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0062184355258941655}, "seconds": 31.0}
+{"time": "2026-10-06 12:09:53", "name": "L2-25-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006390146229002211}, "seconds": 32.8}
+{"time": "2026-10-06 12:10:21", "name": "L2-26-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006022232453028361}, "seconds": 27.6}
+{"time": "2026-10-06 12:10:50", "name": "L2-26-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00627386654747857}, "seconds": 29.1}
+{"time": "2026-10-06 12:11:21", "name": "L2-27-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006285186582141453}, "seconds": 30.8}
+{"time": "2026-10-06 12:11:51", "name": "L2-27-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006196426073710124}, "seconds": 30.5}
+{"time": "2026-10-06 12:12:25", "name": "L2-28-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0064373284975687665}, "seconds": 33.6}
+{"time": "2026-10-06 12:12:49", "name": "L2-28-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005786148892508613}, "seconds": 24.7}
+{"time": "2026-10-06 12:13:20", "name": "L2-29-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006486574278937446}, "seconds": 30.9}
+{"time": "2026-10-06 12:14:05", "name": "L2-29-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007779946406682333}, "seconds": 44.8}
+{"time": "2026-10-06 12:14:43", "name": "L2-30-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006807325707541572}, "seconds": 38.1}
+{"time": "2026-10-06 12:15:12", "name": "L2-30-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006057614194022285}, "seconds": 28.4}
+{"time": "2026-10-06 12:15:33", "name": "L2-13-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006833724233839248}, "seconds": 21.9}
+{"time": "2026-10-06 12:16:12", "name": "L2-13-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0069072227742936875}, "seconds": 38.2}
+{"time": "2026-10-06 12:16:43", "name": "L2-14-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006285531096988255}, "seconds": 31.6}
+{"time": "2026-10-06 12:17:16", "name": "L2-14-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006496810118357341}, "seconds": 32.5}
+{"time": "2026-10-06 12:17:48", "name": "L2-15-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006390967872407702}, "seconds": 32.7}
+{"time": "2026-10-06 12:18:24", "name": "L2-15-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006824769894282023}, "seconds": 35.1}
+{"time": "2026-10-06 12:19:04", "name": "L2-16-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007586473994784885}, "seconds": 40.2}
+{"time": "2026-10-06 12:19:46", "name": "L2-16-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006610598352220324}, "seconds": 42.6}
+{"time": "2026-10-06 12:20:19", "name": "L2-17-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006558649778366089}, "seconds": 32.9}
+{"time": "2026-10-06 12:20:54", "name": "L2-17-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006692832973268297}, "seconds": 34.4}
+{"time": "2026-10-06 12:21:21", "name": "L2-18-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0059485544628567165}, "seconds": 27.3}
+{"time": "2026-10-06 12:21:55", "name": "L2-18-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006473926570680406}, "seconds": 33.8}
+{"time": "2026-10-06 12:22:29", "name": "L3-01-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006525274356206258}, "seconds": 34.4}
+{"time": "2026-10-06 12:23:07", "name": "L3-01-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006585544957054986}, "seconds": 38.2}
+{"time": "2026-10-06 12:23:57", "name": "L3-02-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006996543804804484}, "seconds": 49.3}
+{"time": "2026-10-06 12:24:30", "name": "L3-02-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006487456613116794}, "seconds": 33.4}
+{"time": "2026-10-06 12:24:56", "name": "L3-03-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005822514613469442}, "seconds": 26.3}
+{"time": "2026-10-06 12:25:24", "name": "L3-03-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006026198758019342}, "seconds": 27.6}
+{"time": "2026-10-06 12:25:55", "name": "L3-04-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006155072132746379}, "seconds": 31.0}
+{"time": "2026-10-06 12:26:33", "name": "L3-04-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00705693875418769}, "seconds": 38.2}
+{"time": "2026-10-06 12:27:02", "name": "L3-05-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006237706899642944}, "seconds": 29.1}
+{"time": "2026-10-06 12:27:18", "name": "L3-05-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006240197923448351}, "seconds": 15.7}
+{"time": "2026-10-06 12:27:49", "name": "L3-06-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006111064831415812}, "seconds": 30.8}
+{"time": "2026-10-06 12:28:18", "name": "L3-06-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006188976287841797}, "seconds": 29.7}
+{"time": "2026-10-06 12:28:48", "name": "L3-07-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00628215840127733}, "seconds": 29.2}
+{"time": "2026-10-06 12:29:32", "name": "L3-07-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007314805587132772}, "seconds": 43.9}
+{"time": "2026-10-06 12:29:58", "name": "L3-08-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005829550425211588}, "seconds": 26.0}
+{"time": "2026-10-06 12:30:26", "name": "L3-08-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005877178695466783}, "seconds": 28.3}
+{"time": "2026-10-06 12:31:02", "name": "L3-13-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0066980552673339844}, "seconds": 36.4}
+{"time": "2026-10-06 12:31:33", "name": "L3-13-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006301622258292304}, "seconds": 30.6}
+{"time": "2026-10-06 12:32:15", "name": "L3-14-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006063042852613661}, "seconds": 41.7}
+{"time": "2026-10-06 12:32:46", "name": "L3-14-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0063607921335432265}, "seconds": 31.4}
+{"time": "2026-10-06 12:33:23", "name": "L3-15-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006684839222166274}, "seconds": 36.8}
+{"time": "2026-10-06 12:33:58", "name": "L3-15-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006791384193632338}, "seconds": 35.4}
+{"time": "2026-10-06 12:34:42", "name": "L3-16-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007280043999354045}, "seconds": 43.3}
+{"time": "2026-10-06 12:35:14", "name": "L3-16-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006228435887230767}, "seconds": 32.6}
+{"time": "2026-10-06 12:35:47", "name": "L3-17-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006350887563493517}, "seconds": 33.2}
+{"time": "2026-10-06 12:36:21", "name": "L3-17-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006776739676793417}, "seconds": 34.0}
+{"time": "2026-10-06 12:36:49", "name": "L3-18-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006026418659422133}, "seconds": 27.5}
+{"time": "2026-10-06 12:37:35", "name": "L3-18-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007050959613588122}, "seconds": 46.1}
+{"time": "2026-10-06 12:38:12", "name": "L3-19-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006692473755942451}, "seconds": 37.1}
+{"time": "2026-10-06 12:38:51", "name": "L3-19-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007310513787799412}, "seconds": 39.3}
+{"time": "2026-10-06 12:39:33", "name": "L3-20-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007287265353732639}, "seconds": 41.4}
+{"time": "2026-10-06 12:40:02", "name": "L3-20-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0062473954359690345}, "seconds": 28.9}
+{"time": "2026-10-06 12:40:33", "name": "L3-09-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006077346298429701}, "seconds": 31.0}
+{"time": "2026-10-06 12:41:08", "name": "L3-09-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0064521842797597255}, "seconds": 35.3}
+{"time": "2026-10-06 12:41:43", "name": "L3-10-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006092092514038086}, "seconds": 35.2}
+{"time": "2026-10-06 12:42:21", "name": "L3-10-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006885085291332669}, "seconds": 38.0}
+{"time": "2026-10-06 12:43:09", "name": "L3-11-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007950483984417386}, "seconds": 47.5}
+{"time": "2026-10-06 12:43:36", "name": "L3-11-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006080515384674072}, "seconds": 27.7}
+{"time": "2026-10-06 12:44:16", "name": "L3-12-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007124763091405233}, "seconds": 39.4}
+{"time": "2026-10-06 12:44:51", "name": "L3-12-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006607773012585111}, "seconds": 35.0}
+{"time": "2026-10-06 12:45:16", "name": "N-01-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006851265245013767}, "seconds": 24.4}
+{"time": "2026-10-06 12:45:51", "name": "N-01-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0068868130048116045}, "seconds": 35.2}
+{"time": "2026-10-06 12:46:23", "name": "N-02-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006505187802844577}, "seconds": 32.1}
+{"time": "2026-10-06 12:46:54", "name": "N-02-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006461083730061849}, "seconds": 30.6}
+{"time": "2026-10-06 12:47:29", "name": "N-03-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006809101157718235}, "seconds": 35.4}
+{"time": "2026-10-06 12:48:18", "name": "N-03-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007814434581332737}, "seconds": 48.5}
+{"time": "2026-10-06 12:49:01", "name": "N-04-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00769008027182685}, "seconds": 42.7}
+{"time": "2026-10-06 12:49:40", "name": "N-04-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0063778484132554795}, "seconds": 39.1}
+{"time": "2026-10-06 12:50:13", "name": "N-05-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006621697107950846}, "seconds": 33.5}
+{"time": "2026-10-06 12:51:13", "name": "N-05-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.008437141550911798}, "seconds": 60.0}
+{"time": "2026-10-06 12:52:06", "name": "N-06-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007041809956232707}, "seconds": 52.8}
+{"time": "2026-10-06 12:53:38", "name": "N-06-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.011998713043000963}, "seconds": 92.4}
+{"time": "2026-10-06 12:54:22", "name": "N-07-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007754843844307794}, "seconds": 43.5}
+{"time": "2026-10-06 12:55:05", "name": "N-07-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007412658532460531}, "seconds": 42.7}
+{"time": "2026-10-06 12:55:44", "name": "N-08-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00740844037797716}, "seconds": 39.8}
+{"time": "2026-10-06 12:56:29", "name": "N-08-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007272535006205241}, "seconds": 44.8}
+{"time": "2026-10-06 12:57:09", "name": "N-09-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007170191102557712}, "seconds": 40.0}
+{"time": "2026-10-06 12:57:46", "name": "N-09-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006846962981753879}, "seconds": 36.8}
+{"time": "2026-10-06 12:58:20", "name": "N-10-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006633757405810886}, "seconds": 33.9}
+{"time": "2026-10-06 12:58:51", "name": "N-10-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006329476250542535}, "seconds": 30.8}
+{"time": "2026-10-06 12:59:26", "name": "token-white-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006991538842519124}, "seconds": 34.6}
+{"time": "2026-10-06 13:00:12", "name": "token-white-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007920709901385837}, "seconds": 46.0}
+{"time": "2026-10-06 13:00:39", "name": "token-blue-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006048914856380887}, "seconds": 27.0}
+{"time": "2026-10-06 13:01:12", "name": "token-blue-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00651830267906189}, "seconds": 33.0}
+{"time": "2026-10-06 13:01:40", "name": "token-green-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006109372907214695}, "seconds": 28.5}
+{"time": "2026-10-06 13:02:09", "name": "token-green-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006099873595767551}, "seconds": 28.9}
+{"time": "2026-10-06 13:02:52", "name": "token-red-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007557869964175755}, "seconds": 43.2}
+{"time": "2026-10-06 13:03:32", "name": "token-red-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006706354141235352}, "seconds": 39.4}
+{"time": "2026-10-06 13:04:06", "name": "token-black-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006460161526997884}, "seconds": 34.1}
+{"time": "2026-10-06 13:04:43", "name": "token-black-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007188674396938748}, "seconds": 37.5}
+{"time": "2026-10-06 13:05:19", "name": "token-gold-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006555869552824232}, "seconds": 35.6}
+{"time": "2026-10-06 13:06:05", "name": "token-gold-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007814171261257595}, "seconds": 46.3}
+{"time": "2026-10-06 13:06:38", "name": "back-L1-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006347508880827162}, "seconds": 32.2}
+{"time": "2026-10-06 13:07:06", "name": "back-L1-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006067897346284655}, "seconds": 27.4}
+{"time": "2026-10-06 13:07:32", "name": "back-L2-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005916065851847331}, "seconds": 26.7}
+{"time": "2026-10-06 13:08:11", "name": "back-L2-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007138258271747165}, "seconds": 39.2}
+{"time": "2026-10-06 13:08:46", "name": "back-L3-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006808506992128161}, "seconds": 34.2}
+{"time": "2026-10-06 13:09:25", "name": "back-L3-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006622765117221409}, "seconds": 38.9}
+{"time": "2026-10-06 14:03:56", "name": "L1-19-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006272735383775499}, "seconds": 16.6}
+{"time": "2026-10-06 14:04:29", "name": "L1-19-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00641183778974745}, "seconds": 33.8}
+{"time": "2026-10-06 14:05:06", "name": "L2-01-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006860920614666409}, "seconds": 36.9}
+{"time": "2026-10-06 14:05:35", "name": "L2-01-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0061415444215138755}, "seconds": 29.1}
+{"time": "2026-10-06 14:06:10", "name": "L2-03-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006620080206129286}, "seconds": 34.8}
+{"time": "2026-10-06 14:06:45", "name": "L2-03-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006503925508923001}, "seconds": 34.8}
+{"time": "2026-10-06 14:07:18", "name": "L2-04-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006724806600146824}, "seconds": 33.2}
+{"time": "2026-10-06 14:07:45", "name": "L2-04-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005959618541929457}, "seconds": 26.4}
+{"time": "2026-10-06 14:08:18", "name": "L2-06-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006792267799377442}, "seconds": 33.7}
+{"time": "2026-10-06 14:08:51", "name": "L2-06-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006545636124081082}, "seconds": 32.6}
+{"time": "2026-10-06 14:09:32", "name": "L2-07-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007427209297815958}, "seconds": 41.4}
+{"time": "2026-10-06 14:10:02", "name": "L2-07-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0063113002247280545}, "seconds": 29.8}
+{"time": "2026-10-06 14:10:28", "name": "L2-09-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005914810366100735}, "seconds": 25.9}
+{"time": "2026-10-06 14:11:03", "name": "L2-09-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006694623761706882}, "seconds": 34.9}
+{"time": "2026-10-06 14:11:34", "name": "L2-10-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0061924987634023035}, "seconds": 30.5}
+{"time": "2026-10-06 14:12:01", "name": "L2-10-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005994908279842801}, "seconds": 27.0}
+{"time": "2026-10-06 14:12:51", "name": "L2-11-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007445369296603733}, "seconds": 49.9}
+{"time": "2026-10-06 14:13:18", "name": "L2-11-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00602788954310947}, "seconds": 27.3}
+{"time": "2026-10-06 14:13:51", "name": "L2-12-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006186313178804186}, "seconds": 32.8}
+{"time": "2026-10-06 14:14:25", "name": "L2-12-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006663655254575941}, "seconds": 34.5}
+{"time": "2026-10-06 14:14:51", "name": "L2-20-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0058929979006449385}, "seconds": 26.1}
+{"time": "2026-10-06 14:15:26", "name": "L2-20-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006593010319603814}, "seconds": 34.4}
+{"time": "2026-10-06 14:16:00", "name": "L2-23-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006686379512151083}, "seconds": 34.0}
+{"time": "2026-10-06 14:16:30", "name": "L2-23-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006289233896467421}, "seconds": 30.0}
+{"time": "2026-10-06 14:17:03", "name": "L2-29-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006242218414942423}, "seconds": 33.2}
+{"time": "2026-10-06 14:17:37", "name": "L2-29-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006531181494394939}, "seconds": 34.0}
+{"time": "2026-10-06 14:18:06", "name": "L2-30-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0061292330159081355}, "seconds": 29.5}
+{"time": "2026-10-06 14:18:48", "name": "L2-30-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007014474365446303}, "seconds": 42.1}
+{"time": "2026-10-06 14:19:20", "name": "L2-17-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006299794303046333}, "seconds": 31.9}
+{"time": "2026-10-06 14:19:51", "name": "L2-17-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006299047787984213}, "seconds": 30.5}
+{"time": "2026-10-06 14:20:25", "name": "L2-18-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006265379614300198}, "seconds": 33.9}
+{"time": "2026-10-06 14:20:53", "name": "L2-18-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005940030442343818}, "seconds": 28.0}
+{"time": "2026-10-06 14:21:29", "name": "L3-01-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006770695130030315}, "seconds": 36.1}
+{"time": "2026-10-06 14:22:08", "name": "L3-01-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00718857995669047}, "seconds": 38.8}
+{"time": "2026-10-06 14:22:35", "name": "N-04-c2", "endpoint": "/create-image-bitforge", "usage": {"type": "usd", "usd": 0.007503608054584927}, "seconds": 16.6}
+{"time": "2026-10-06 14:23:11", "name": "N-04-c3", "endpoint": "/create-image-bitforge", "usage": {"type": "usd", "usd": 0.008099129815896352}, "seconds": 36.4}
+{"time": "2026-10-06 14:25:02", "name": "L2-01-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006200181431240506}, "seconds": 13.6}
+{"time": "2026-10-06 14:25:33", "name": "L2-01-c3", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0061850981977250846}, "seconds": 30.5}
+{"time": "2026-10-06 14:27:09", "name": "L1-36", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.018639134181870354}, "seconds": 70.0, "status": "completed"}
+{"time": "2026-10-06 14:28:44", "name": "L1-01", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.020732823623551264}, "seconds": 77.3, "status": "completed"}
+{"time": "2026-10-06 14:29:53", "name": "L1-02", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.019691824469301435}, "seconds": 68.6, "status": "completed"}
+{"time": "2026-10-06 14:31:27", "name": "L1-03", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.0245274827281634}, "seconds": 94.5, "status": "completed"}
+{"time": "2026-10-06 14:33:02", "name": "L1-04", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.023333154426680672}, "seconds": 94.9, "status": "completed"}
+{"time": "2026-10-06 14:34:06", "name": "L1-05", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.01800246569183138}, "seconds": 63.3, "status": "completed"}
+{"time": "2026-10-06 14:35:09", "name": "L1-06", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.01801837064160241}, "seconds": 63.4, "status": "completed"}
+{"time": "2026-10-06 14:36:26", "name": "L1-07", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02018618329366048}, "seconds": 76.5, "status": "completed"}
+{"time": "2026-10-06 14:40:31", "name": "L1-08", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.05302211326360703}, "seconds": 245.1, "status": "completed"}
+{"time": "2026-10-06 14:41:33", "name": "L1-09", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.017881061739391753}, "seconds": 61.7, "status": "completed"}
+{"time": "2026-10-06 14:43:21", "name": "L1-10", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02393323380417294}, "seconds": 107.5, "status": "completed"}
+{"time": "2026-10-06 14:44:33", "name": "L1-11", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.019553695936997732}, "seconds": 72.4, "status": "completed"}
+{"time": "2026-10-06 14:45:51", "name": "L1-12", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.020237030075656044}, "seconds": 78.1, "status": "completed"}
+{"time": "2026-10-06 14:47:22", "name": "L1-13", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.023568137831158107}, "seconds": 90.3, "status": "completed"}
+{"time": "2026-10-06 14:49:07", "name": "L1-14", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.025919596579339767}, "seconds": 105.3, "status": "completed"}
+{"time": "2026-10-06 14:50:26", "name": "L1-15", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.022439592354827457}, "seconds": 79.1, "status": "completed"}
+{"time": "2026-10-06 14:51:49", "name": "L1-16", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.017664697104030184}, "seconds": 82.1, "status": "completed"}
+{"time": "2026-10-06 14:53:18", "name": "L1-17", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02131427190038893}, "seconds": 89.5, "status": "completed"}
+{"time": "2026-10-06 14:54:57", "name": "L1-18", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.024458492312166423}, "seconds": 98.5, "status": "completed"}
+{"time": "2026-10-06 14:56:14", "name": "L1-20", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.020174862338436975}, "seconds": 77.5, "status": "completed"}
+{"time": "2026-10-06 14:57:45", "name": "L1-21", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.021428922202852037}, "seconds": 90.2, "status": "completed"}
+{"time": "2026-10-06 14:58:47", "name": "L2-04-c0", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006748178905910916}, "seconds": 18.7}
+{"time": "2026-10-06 14:59:02", "name": "L1-22", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.020989761802885268}, "seconds": 77.0, "status": "completed"}
+{"time": "2026-10-06 14:59:16", "name": "L2-04-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006243381579717}, "seconds": 29.0}
+{"time": "2026-10-06 14:59:49", "name": "L2-04-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0064615690973069935}, "seconds": 32.9}
+{"time": "2026-10-06 15:00:19", "name": "L2-04-c3", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006046171267827352}, "seconds": 30.1}
+{"time": "2026-10-06 15:00:41", "name": "L1-23", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02398805829551485}, "seconds": 99.3, "status": "completed"}
+{"time": "2026-10-06 15:02:42", "name": "L1-24", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.028736925886736972}, "seconds": 121.1, "status": "completed"}
+{"time": "2026-10-06 15:03:43", "name": "L1-25", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.017804812914795347}, "seconds": 60.6, "status": "completed"}
+{"time": "2026-10-06 15:05:15", "name": "L1-26", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.024301401257514954}, "seconds": 91.3, "status": "completed"}
+{"time": "2026-10-06 15:06:14", "name": "L1-27", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.01857558141814338}, "seconds": 59.1, "status": "completed"}
+{"time": "2026-10-06 15:07:43", "name": "L1-28", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02119807473156187}, "seconds": 89.0, "status": "completed"}
+{"time": "2026-10-06 15:09:21", "name": "L1-29", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.021987812015745373}, "seconds": 97.9, "status": "completed"}
+{"time": "2026-10-06 15:11:05", "name": "L1-30", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02665791732735104}, "seconds": 103.9, "status": "completed"}
+{"time": "2026-10-06 15:13:02", "name": "L1-31", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.026831780526373118}, "seconds": 116.6, "status": "completed"}
+{"time": "2026-10-06 15:14:52", "name": "L1-32", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.024604275855753158}, "seconds": 109.9, "status": "completed"}
+{"time": "2026-10-06 15:16:25", "name": "L1-33", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.021429536276393466}, "seconds": 93.2, "status": "completed"}
+{"time": "2026-10-06 15:18:19", "name": "L1-34", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02680934917926788}, "seconds": 114.2, "status": "completed"}
+{"time": "2026-10-06 15:19:40", "name": "L1-35", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02115175339248445}, "seconds": 80.2, "status": "completed"}
+{"time": "2026-10-06 15:21:35", "name": "L1-37", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02566940959294637}, "seconds": 114.9, "status": "completed"}
+{"time": "2026-10-06 15:22:45", "name": "L1-38", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.018659498976336585}, "seconds": 70.0, "status": "completed"}
+{"time": "2026-10-06 15:24:04", "name": "L1-39", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.021788928495513067}, "seconds": 78.7, "status": "completed"}
+{"time": "2026-10-06 15:26:06", "name": "L1-40", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02859329373306698}, "seconds": 121.9, "status": "completed"}
+{"time": "2026-10-06 15:28:14", "name": "L2-02", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02964250235425101}, "seconds": 128.0, "status": "completed"}
+{"time": "2026-10-06 15:29:18", "name": "L2-05", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.018583120856020187}, "seconds": 64.5, "status": "completed"}
+{"time": "2026-10-06 15:30:54", "name": "L2-08", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.022524663236406114}, "seconds": 95.8, "status": "completed"}
+{"time": "2026-10-06 15:32:37", "name": "L2-13", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.023999166833029852}, "seconds": 103.1, "status": "completed"}
+{"time": "2026-10-06 15:34:18", "name": "L2-14", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02555004025167889}, "seconds": 100.5, "status": "completed"}
+{"time": "2026-10-06 15:35:53", "name": "L2-15", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02112517178720898}, "seconds": 94.6, "status": "completed"}
+{"time": "2026-10-06 15:37:17", "name": "L1-10", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.018496300286716887}, "seconds": 138.4, "status": "completed"}
+{"time": "2026-10-06 15:38:57", "name": "L1-10", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02420523115661409}, "seconds": 99.4, "status": "completed"}
+{"time": "2026-10-06 15:40:18", "name": "L2-16", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02009126493665907}, "seconds": 265.3, "status": "completed"}
+{"time": "2026-10-06 15:41:53", "name": "L1-10", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02437959318028556}, "seconds": 120.1, "status": "completed"}
+{"time": "2026-10-06 15:43:38", "name": "L2-19", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02018292823102739}, "seconds": 199.4, "status": "completed"}
+{"time": "2026-10-06 15:44:56", "name": "L2-21", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02028603505425983}, "seconds": 78.0, "status": "completed"}
+{"time": "2026-10-06 15:46:15", "name": "L2-22", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.019624231921301947}, "seconds": 79.1, "status": "completed"}
+{"time": "2026-10-06 15:47:52", "name": "L2-24", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.023282205515437655}, "seconds": 96.4, "status": "completed"}
+{"time": "2026-10-06 15:49:58", "name": "L2-25", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.03008996498584747}, "seconds": 126.2, "status": "completed"}
+{"time": "2026-10-06 15:51:06", "name": "L2-26", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.019548289994398754}, "seconds": 68.4, "status": "completed"}
+{"time": "2026-10-06 15:53:05", "name": "L2-27", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.024386795355214014}, "seconds": 118.9, "status": "completed"}
+{"time": "2026-10-06 15:54:52", "name": "L2-28", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02589526293012831}, "seconds": 106.6, "status": "completed"}
+{"time": "2026-10-06 15:56:00", "name": "L3-02", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.019028683642546333}, "seconds": 67.7, "status": "completed"}
+{"time": "2026-10-06 15:57:05", "name": "L3-03", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.01849535678492652}, "seconds": 64.9, "status": "completed"}
+{"time": "2026-10-06 15:58:42", "name": "L3-04", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.024234473175472684}, "seconds": 96.8, "status": "completed"}
+{"time": "2026-10-06 16:00:06", "name": "L3-05", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02107644732793172}, "seconds": 84.5, "status": "completed"}
+{"time": "2026-10-06 16:01:39", "name": "L3-06", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.023713139295578}, "seconds": 92.3, "status": "completed"}
+{"time": "2026-10-06 16:02:43", "name": "L3-07", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.019453750669956207}, "seconds": 64.2, "status": "completed"}
+{"time": "2026-10-06 16:03:47", "name": "L3-08", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.018346940550539228}, "seconds": 63.9, "status": "completed"}
+{"time": "2026-10-06 16:05:19", "name": "L3-09", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02385338940885332}, "seconds": 91.3, "status": "completed"}
+{"time": "2026-10-06 16:06:25", "name": "L3-10", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.018861355278227063}, "seconds": 65.8, "status": "completed"}
+{"time": "2026-10-06 16:07:54", "name": "L3-11", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.022644487778345743}, "seconds": 89.4, "status": "completed"}
+{"time": "2026-10-06 16:09:36", "name": "L3-12", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.024783865802817873}, "seconds": 101.6, "status": "completed"}
+{"time": "2026-10-06 16:11:22", "name": "L3-13", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.024360449022716946}, "seconds": 106.1, "status": "completed"}
+{"time": "2026-10-06 16:12:51", "name": "L3-14", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02347426751587126}, "seconds": 89.3, "status": "completed"}
+{"time": "2026-10-06 16:14:27", "name": "L3-15", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.0239216777616077}, "seconds": 95.3, "status": "completed"}
+{"time": "2026-10-06 16:15:31", "name": "L3-16", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.01856651055150562}, "seconds": 63.7, "status": "completed"}
+{"time": "2026-10-06 16:17:30", "name": "L3-17", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.027013857086499532}, "seconds": 118.7, "status": "completed"}
+{"time": "2026-10-06 16:19:01", "name": "L3-18", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.0215518290731642}, "seconds": 91.6, "status": "completed"}
+{"time": "2026-10-06 16:20:14", "name": "L3-19", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02039501456419627}, "seconds": 73.0, "status": "completed"}
+{"time": "2026-10-06 16:21:50", "name": "L3-20", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02333192660411199}, "seconds": 95.4, "status": "completed"}
+{"time": "2026-10-06 16:24:12", "name": "L2-17", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.029320983257558608}, "seconds": 119.3, "status": "completed"}
+{"time": "2026-10-06 16:25:58", "name": "L2-18", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02387617748975754}, "seconds": 105.5, "status": "completed"}
+{"time": "2026-10-06 16:27:28", "name": "L2-07", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.023069783727327983}, "seconds": 90.8, "status": "completed"}
+{"time": "2026-10-06 16:29:15", "name": "L2-09", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.026147429916593766}, "seconds": 106.8, "status": "completed"}
+{"time": "2026-10-06 16:30:21", "name": "L2-10", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.01929438852601581}, "seconds": 65.4, "status": "completed"}
+{"time": "2026-10-06 16:32:01", "name": "L2-11", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.026153203580114574}, "seconds": 99.9, "status": "completed"}
+{"time": "2026-10-06 16:33:42", "name": "L2-12", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.023609264857239194}, "seconds": 101.3, "status": "completed"}
+{"time": "2026-10-06 16:35:14", "name": "L2-20", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.022705591248141394}, "seconds": 92.1, "status": "completed"}
+{"time": "2026-10-06 16:36:29", "name": "L2-23", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.019610721747080485}, "seconds": 74.7, "status": "completed"}
+{"time": "2026-10-06 16:38:23", "name": "L2-29", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.025011665946907465}, "seconds": 114.1, "status": "completed"}
+{"time": "2026-10-06 16:39:46", "name": "L2-30", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02178225059641732}, "seconds": 82.3, "status": "completed"}
+{"time": "2026-10-06 16:40:47", "name": "L2-06", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.01802633357048035}, "seconds": 61.1, "status": "completed"}
+{"time": "2026-10-06 16:41:44", "name": "L2-01", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.017995035105281408}, "seconds": 56.5, "status": "completed"}
+{"time": "2026-10-06 16:43:34", "name": "L2-03", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.025504405538241067}, "seconds": 109.9, "status": "completed"}
+{"time": "2026-10-06 16:45:23", "name": "L3-01", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02574690603547626}, "seconds": 109.6, "status": "completed"}
+{"time": "2026-10-06 16:46:56", "name": "L1-19", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02132326942682266}, "seconds": 92.5, "status": "completed"}
+{"time": "2026-10-06 16:48:22", "name": "L2-04", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.020549788680341508}, "seconds": 80.2, "status": "completed"}
+{"time": "2026-10-06 16:49:36", "name": "L3-18", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02029098171657986}, "seconds": 73.0, "status": "completed"}
+{"time": "2026-10-06 16:50:37", "name": "L1-03", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.01819757937722736}, "seconds": 60.2, "status": "completed"}
+{"time": "2026-10-06 16:52:05", "name": "L1-03", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02277092703183492}, "seconds": 88.1, "status": "completed"}
+{"time": "2026-10-06 16:53:24", "name": "L1-35", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.021496635516484577}, "seconds": 79.2, "status": "completed"}
+{"time": "2026-10-06 16:54:40", "name": "L1-33", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.01967622423834271}, "seconds": 76.0, "status": "completed"}
+{"time": "2026-10-06 16:55:54", "name": "L1-36", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.018886050528950163}, "seconds": 73.3, "status": "completed"}
+{"time": "2026-10-06 16:57:07", "name": "L1-36", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02035556193855074}, "seconds": 73.3, "status": "completed"}
+{"time": "2026-10-06 16:59:02", "name": "L1-35", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.02101444634464052}, "seconds": 78.8, "status": "completed"}
+{"time": "2026-10-06 17:10:21", "name": "N-11-p0", "endpoint": "/image-to-pixelart", "usage": {"type": "usd", "usd": 0.006275972220632765}, "seconds": 14.4}
+{"time": "2026-10-06 17:10:31", "name": "N-11-p1", "endpoint": "/image-to-pixelart", "usage": {"type": "usd", "usd": 0.0061047051350275675}, "seconds": 10.4}
+{"time": "2026-10-06 17:10:43", "name": "N-11-p2", "endpoint": "/image-to-pixelart", "usage": {"type": "usd", "usd": 0.0061713715195655825}, "seconds": 11.9}
+{"time": "2026-10-06 17:12:15", "name": "N-11-c0", "endpoint": "/create-image-bitforge", "usage": {"type": "usd", "usd": 0.008585791024896833}, "seconds": 25.6}
+{"time": "2026-10-06 17:12:49", "name": "N-11-c1", "endpoint": "/create-image-bitforge", "usage": {"type": "usd", "usd": 0.007507153650124868}, "seconds": 33.9}
+{"time": "2026-10-06 17:13:28", "name": "N-11-c2", "endpoint": "/create-image-bitforge", "usage": {"type": "usd", "usd": 0.007958112087514665}, "seconds": 39.7}
+{"time": "2026-10-06 17:14:23", "name": "N-11-e0", "endpoint": "/edit-image", "usage": {"type": "usd", "usd": 0.006209221786922878}, "seconds": 23.6, "status": "completed"}
+{"time": "2026-10-06 17:14:36", "name": "N-11-e1", "endpoint": "/edit-image", "usage": {"type": "usd", "usd": 0.00579114145702786}, "seconds": 13.2, "status": "completed"}
+{"time": "2026-10-06 17:17:08", "name": "N-11", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.021710170805454253}, "seconds": 80.1, "status": "completed"}

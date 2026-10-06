@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { TURN_SECONDS_OPTIONS, type GameAction, type LobbyRoomSnapshot, type PublicRoomSummary, type TurnSeconds } from "@gem-merchant/game";
 import GameBoard from "./GameBoard.js";
+import { readBoardStyle } from "./boardStyle.js";
 import GameRules from "./GameRules.js";
 import OnlineRooms from "./OnlineRooms.js";
 import RoomChat from "./RoomChat.js";
@@ -203,7 +204,7 @@ function App() {
           <Brand />
           <ConnectionStatus connected={connected} />
         </header>
-        <GameRules />
+        <GameRules pixel={readBoardStyle() === "pixel"} />
         <RoomView
           room={room}
           busy={busy}

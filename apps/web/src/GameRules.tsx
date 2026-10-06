@@ -1,6 +1,7 @@
 import { useState } from "react";
 
-function GameRules() {
+/** pixel：像素版画面不显示土地等级，规则里改说「三排」；原始版本保留原来的说法。 */
+function GameRules({ pixel = true }: { pixel?: boolean }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -39,7 +40,11 @@ function GameRules() {
             <ul>
               <li>每张已购买的土地提供 1 枚对应颜色的<b>永久折扣</b>，以后购买时自动抵扣该色费用。</li>
               <li>金色万能宝石可以代替任意颜色支付。支付的宝石回到供应区。</li>
-              <li>土地分 1–3 级，等级越高分数越多、价格越贵。买走或预留明牌后会立即从牌堆补上。</li>
+              {pixel ? (
+                <li>牌桌上有三排土地，越往上的一排分数越多、价格越贵。买走或预留明牌后会立即从这一排的牌堆补上。</li>
+              ) : (
+                <li>土地分 1–3 级，等级越高分数越多、价格越贵。买走或预留明牌后会立即从牌堆补上。</li>
+              )}
             </ul>
           </div>
 

@@ -86,6 +86,17 @@
         "black": 4,
         "white": 4
       }
+    },
+    {
+      "id": "N-11",
+      "points": 3,
+      "requirements": {
+        "white": 2,
+        "blue": 2,
+        "green": 2,
+        "red": 2,
+        "black": 2
+      }
     }
   ]
 }
