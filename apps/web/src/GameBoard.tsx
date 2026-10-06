@@ -15,7 +15,7 @@ import {
   type TokenColor,
   type TokenCounts,
 } from "@gem-merchant/game";
-import { useBoardStyle } from "./boardStyle.js";
+import type { BoardStyle } from "./boardStyle.js";
 import GameRules from "./GameRules.js";
 import { socket } from "./socket.js";
 import { useGameSounds, useSoundSetting } from "./sound.js";
@@ -834,14 +834,13 @@ function GameTable({
   );
 }
 
-/** 外层：记住自己选的画面风格（默认像素版），只把那一套样式表放进页面，再渲染牌桌。 */
-function GameBoard(props: Omit<ComponentProps<typeof GameTable>, "onToggleBoardStyle">) {
-  const [boardStyle, toggleBoardStyle] = useBoardStyle();
+/** 外层：按当前画面风格（由 App 统一保管）只把那一套样式表放进页面，再渲染牌桌。 */
+function GameBoard({ boardStyle, ...props }: ComponentProps<typeof GameTable> & { boardStyle: BoardStyle }) {
   const pixel = boardStyle === "pixel";
   return (
     <PixelBoard.Provider value={pixel}>
       <style>{pixel ? pixelCss : classicCss + classicExtraCss}</style>
-      <GameTable {...props} onToggleBoardStyle={toggleBoardStyle} />
+      <GameTable {...props} />
     </PixelBoard.Provider>
   );
 }

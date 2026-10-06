@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { TURN_SECONDS_OPTIONS, type GameAction, type LobbyRoomSnapshot, type PublicRoomSummary, type TurnSeconds } from "@gem-merchant/game";
 import GameBoard from "./GameBoard.js";
-import { readBoardStyle } from "./boardStyle.js";
+import { useBoardStyle } from "./boardStyle.js";
 import GameRules from "./GameRules.js";
+// 首页和等候房间的像素皮肤：只在像素版时放进页面，叠在原始的 styles.css 上。
+import appPixelCss from "./app-pixel.css?inline";
 import OnlineRooms from "./OnlineRooms.js";
 import RoomChat from "./RoomChat.js";
 import { socket } from "./socket.js";
@@ -32,6 +34,11 @@ function App() {
   const [notice, setNotice] = useState("");
   const [lobbyRooms, setLobbyRooms] = useState<PublicRoomSummary[]>([]);
   const voice = useVoice(room);
+  // 画面风格（默认像素版）：首页、等候房间、牌桌共用，顶栏按钮随时切换。
+  const [boardStyle, toggleBoardStyle] = useBoardStyle();
+  const pixel = boardStyle === "pixel";
+  const pixelSkin = pixel && <style>{appPixelCss}</style>;
+  const styleToggle = <StyleToggle pixel={pixel} onToggle={toggleBoardStyle} />;
 
   // 在房间里时服务端不推送在线牌桌列表；回到首页时主动拉一次最新的。
   useEffect(() => {
@@ -192,6 +199,8 @@ function App() {
           onAction={submitGameAction}
           onRematch={voteRematch}
           onDissolve={dissolveRoom}
+          boardStyle={boardStyle}
+          onToggleBoardStyle={toggleBoardStyle}
         />
       </main>
     );
@@ -200,11 +209,15 @@ function App() {
   if (room) {
     return (
       <main className="app-shell">
+        {pixelSkin}
         <header className="topbar">
           <Brand />
-          <ConnectionStatus connected={connected} />
+          <div className="topbar-right">
+            {styleToggle}
+            <ConnectionStatus connected={connected} />
+          </div>
         </header>
-        <GameRules pixel={readBoardStyle() === "pixel"} />
+        <GameRules pixel={pixel} />
         <RoomView
           room={room}
           busy={busy}
@@ -225,9 +238,11 @@ function App() {
 
   return (
     <main className="app-shell">
+      {pixelSkin}
       <header className="topbar">
         <Brand />
         <div className="topbar-right">
+          {styleToggle}
           <a className="center-link" href={CENTER_URL}>← 游戏中心</a>
           <ConnectionStatus connected={connected} />
         </div>
@@ -361,6 +376,20 @@ function Brand() {
       <span className="brand-mark" aria-hidden="true"><i /><i /><i /></span>
       <span className="brand-name">宝石商人<span> GEM MERCHANT</span></span>
     </a>
+  );
+}
+
+/** 顶栏的画面切换按钮：像素版 ⇄ 原始版本，只影响自己看到的画面。 */
+function StyleToggle({ pixel, onToggle }: { pixel: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      className="quiet-button style-toggle"
+      onClick={onToggle}
+      title={pixel ? "换回原始版本的画面（只影响你自己看到的）" : "换成像素风画面（只影响你自己看到的）"}
+    >
+      {pixel ? "切换原版" : "切换像素版"}
+    </button>
   );
 }
 
