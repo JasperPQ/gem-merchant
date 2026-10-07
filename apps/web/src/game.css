@@ -583,3 +583,22 @@ button.gm-card:hover:not(:disabled) { transform: translateY(calc(var(--px) * -2)
   .gm-chat { height: 380px; }
   .gm-card-dialog { grid-template-columns: minmax(0, 1fr); justify-items: center; }
 }
+
+/* 手机竖屏：宝石供应改成牌桌上方一横排，市场占满整宽，高度跟着宽度走，卡牌才不会挤得很小 */
+@media (max-width: 600px) {
+  .gm-topbar { gap: 8px; }
+  .gm-feedback { order: 10; flex-basis: 100%; }
+  .gm-table { container-type: normal; height: auto; margin: 8px 6px; padding: 10px 8px; }
+  .gm-table-inner { height: auto; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .gm-bank { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 40px 14px; padding: 4px 0 8px; }
+  .gm-bank-token { width: 40px; height: 40px; }
+  /* 「拿 2 枚」放到宝石正下方（通用按钮规则的内边距更具体，这里用 .game-shell 压过） */
+  .game-shell .gm-take-two { top: calc(100% + 4px); right: auto; left: 50%; translate: -50% 0; padding: 0 4px; line-height: 1.4; }
+  .gm-take-button { flex-direction: row; align-self: center; }
+  .gm-market { aspect-ratio: 1 / 1.08; gap: 8px; }
+  .gm-row { gap: 6px; }
+  .gm-row > .gm-card { height: min(100%, calc((100cqw - 24px) / 5 * 88 / 63)); }
+  .gm-row.gm-nobles > .gm-noble { height: min(100%, calc((100cqw - 24px) / 5)); }
+  .gm-result { width: min(92%, 340px); padding: 16px 14px; }
+  .gm-result :is(.primary-button, .quiet-button) { white-space: nowrap; }
+}

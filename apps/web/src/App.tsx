@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { TURN_SECONDS_OPTIONS, type GameAction, type LobbyRoomSnapshot, type PublicRoomSummary, type TurnSeconds } from "@gem-merchant/game";
 import GameBoard from "./GameBoard.js";
 import { useBoardStyle } from "./boardStyle.js";
+import { useConfirm } from "./confirm.js";
 import GameRules from "./GameRules.js";
 // 首页和等候房间的像素皮肤：只在像素版时放进页面，叠在原始的 styles.css 上。
 import appPixelCss from "./app-pixel.css?inline";
@@ -39,6 +40,16 @@ function App() {
   const pixel = boardStyle === "pixel";
   const pixelSkin = pixel && <style>{appPixelCss}</style>;
   const styleToggle = <StyleToggle pixel={pixel} onToggle={toggleBoardStyle} />;
+  // 解散房间等确认：像素版用像素弹窗，原始版本照旧用浏览器确认框。
+  const [confirm, confirmDialog] = useConfirm(pixel);
+  // 手机浏览器地址栏的颜色跟着画面风格走：像素版深色，原始版本保持 index.html 里的米色。
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) return;
+    const original = meta.getAttribute("content") ?? "";
+    if (pixel) meta.setAttribute("content", "#0e0c13");
+    return () => meta.setAttribute("content", original);
+  }, [pixel]);
 
   // 在房间里时服务端不推送在线牌桌列表；回到首页时主动拉一次最新的。
   useEffect(() => {
@@ -170,8 +181,14 @@ function App() {
   const kickMember = (memberId: string) => roomCommand((ack) => socket.emit("room:kick", memberId, ack));
   const setTurnSeconds = (seconds: TurnSeconds) => roomCommand((ack) => socket.emit("room:turnSeconds", seconds, ack));
   const voteRematch = (accept: boolean) => roomCommand((ack) => socket.emit("room:rematch", accept, ack));
-  function dissolveRoom() {
-    if (!window.confirm("确定解散房间吗？所有玩家都会被移出，当前对局也会结束。")) return;
+  async function dissolveRoom() {
+    const ok = await confirm({
+      title: "解散房间？",
+      detail: "所有玩家都会被移出，当前对局也会结束。",
+      confirmLabel: "解散房间",
+      classicText: "确定解散房间吗？所有玩家都会被移出，当前对局也会结束。",
+    });
+    if (!ok) return;
     roomCommand((ack) => socket.emit("room:dissolve", ack));
   }
 
@@ -202,6 +219,7 @@ function App() {
           boardStyle={boardStyle}
           onToggleBoardStyle={toggleBoardStyle}
         />
+        {confirmDialog}
       </main>
     );
   }
@@ -232,6 +250,7 @@ function App() {
         />
         <RoomChat room={room} voice={voice} />
         <footer className="page-footer">围坐桌边，专注每一次选择。</footer>
+        {confirmDialog}
       </main>
     );
   }
@@ -364,8 +383,9 @@ function App() {
         <span className="how-divider" />
         <div className="how-item"><span className="how-number">03</span><span>开始对局</span></div>
       </section>
-      <OnlineRooms rooms={lobbyRooms} connected={connected} />
+      <OnlineRooms rooms={lobbyRooms} connected={connected} confirm={confirm} />
       <footer className="page-footer">围坐桌边，专注每一次选择。</footer>
+      {confirmDialog}
     </main>
   );
 }

@@ -45,7 +45,7 @@ body { background: repeating-conic-gradient(#13101a 0 25%, #0e0c13 0 50%) 0 0 / 
   .text-input, .capacity-option, .primary-button, .quiet-button, .kick-button, .host-badge, .waiting-pill,
   .player-avatar, .empty-avatar, .ready-summary > div, .admin-bar, .admin-bar-button, .admin-dissolve,
   .game-rules-toggle, .game-rules-panel, .room-chat, .room-chat-list, .room-chat-message, .room-chat-input,
-  .room-chat-send, .voice-bar, .voice-button, .voice-person
+  .room-chat-send, .voice-bar, .voice-button, .voice-person, .gm-panel
 ) {
   border: 0;
   border-radius: 0;
@@ -301,6 +301,21 @@ body { background: repeating-conic-gradient(#13101a 0 25%, #0e0c13 0 50%) 0 0 / 
 .app-shell .room-chat.light .voice-person { --rim: #4a3f63; padding: 0 6px; color: var(--text); background: var(--panel-2); font-size: 12px; }
 .app-shell .room-chat.light .voice-person.speaking { --rim: var(--ok); }
 .app-shell .room-chat.light .voice-error { color: var(--bad); font-size: 12px; }
+
+/* ---------- 确认弹窗（解散房间等），和牌桌上的弹窗一个样子 ---------- */
+.app-shell .gm-modal-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: repeating-conic-gradient(rgba(5, 4, 8, 0.85) 0 25%, rgba(5, 4, 8, 0.6) 0 50%) 0 0 / 4px 4px;
+}
+.app-shell .gm-panel { --rim: var(--gold); width: min(380px, 100%); padding: 22px 24px; color: var(--text); background: var(--panel); }
+.app-shell .gm-panel h2 { margin: 0 0 10px; color: var(--gold); font-family: inherit; font-size: 24px; font-weight: 400; line-height: 1.25; }
+.app-shell .gm-panel p { margin: 0; color: var(--text); font-size: 12px; line-height: 1.7; }
+.app-shell .gm-panel-actions { display: flex; justify-content: flex-end; gap: 14px; margin-top: 20px; }
 
 @media (prefers-reduced-motion: reduce) {
   .app-shell :is(.waiting-pill i, .pulse-dot) { animation: none; }

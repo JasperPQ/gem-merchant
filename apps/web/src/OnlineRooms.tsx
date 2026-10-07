@@ -1,5 +1,6 @@
 import type { PublicRoomSummary } from "@gem-merchant/game";
 import AdminBar, { adminEntryEnabled, useAdminToken } from "./AdminBar.js";
+import type { useConfirm } from "./confirm.js";
 import { socket } from "./socket.js";
 
 const statusLabels: Record<PublicRoomSummary["status"], string> = {
@@ -8,16 +9,26 @@ const statusLabels: Record<PublicRoomSummary["status"], string> = {
   finished: "已结束",
 };
 
-function OnlineRooms({ rooms, connected }: { rooms: PublicRoomSummary[]; connected: boolean }) {
+function OnlineRooms({ rooms, connected, confirm }: {
+  rooms: PublicRoomSummary[];
+  connected: boolean;
+  confirm: ReturnType<typeof useConfirm>[0];
+}) {
   const onlineCount = rooms.reduce(
     (total, room) => total + room.players.filter((player) => player.connected).length,
     0,
   );
   const admin = useAdminToken();
 
-  function dissolve(room: PublicRoomSummary) {
+  async function dissolve(room: PublicRoomSummary) {
     const names = room.players.map((player) => player.name).join("、");
-    if (!window.confirm(`确定解散这个房间吗？（${names}）所有玩家都会被移出。`)) return;
+    const ok = await confirm({
+      title: "解散这个房间？",
+      detail: `${names}，所有玩家都会被移出。`,
+      confirmLabel: "解散房间",
+      classicText: `确定解散这个房间吗？（${names}）所有玩家都会被移出。`,
+    });
+    if (!ok) return;
     admin.setError("");
     socket.emit("admin:dissolve", { roomId: room.id, token: admin.token }, (response) => {
       if (!response.ok) admin.setError(response.error);
