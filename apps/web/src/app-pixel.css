@@ -380,3 +380,10 @@ body { background: repeating-conic-gradient(#13101a 0 25%, #0e0c13 0 50%) 0 0 / 
 :is(.app-shell, .game-shell) .spectate-seat { min-height: 28px; padding: 2px 8px; border: 0; color: var(--muted); background: var(--panel-2); cursor: pointer; }
 :is(.app-shell, .game-shell) .spectate-seat.on { color: #2a1c06; background: var(--gold); }
 :is(.app-shell, .game-shell) .spectate-bar .quiet-button { margin-left: auto; }
+/* 窄屏上观战栏收紧：去掉说明，按钮变小，牌桌尽量留在一屏里 */
+@media (max-width: 520px) {
+  :is(.app-shell, .game-shell) .spectate-bar { gap: 6px; padding: 6px 8px; }
+  :is(.app-shell, .game-shell) .spectate-bar strong { font-size: 12px; }
+  :is(.app-shell, .game-shell) .spectate-hint { display: none; }
+  :is(.app-shell, .game-shell) .spectate-seat { min-height: 24px; padding: 0 6px; }
+}
