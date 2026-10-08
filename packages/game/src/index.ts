@@ -1,5 +1,5 @@
 export { applyAction, createGame, getPlayerBonuses, getPlayerScore, getRemainingCost, redactGameForViewer, skipTurn } from "./engine.js";
-export { TURN_SECONDS_OPTIONS } from "./roomTypes.js";
+export { DEFAULT_ROOM_ACCESS, TURN_SECONDS_OPTIONS } from "./roomTypes.js";
 export {
 	CARD_LEVELS,
 	GEM_COLORS,
@@ -34,7 +34,9 @@ export type {
 	IceServerConfig,
 	VoiceParticipant,
 	VoiceSignal,
+	RoomAccess,
 	RoomChatMessage,
 	SendRoomChatPayload,
 	ServerToClientEvents,
+	Spectator,
 } from "./roomTypes.js";

@@ -9,10 +9,13 @@ const statusLabels: Record<PublicRoomSummary["status"], string> = {
   finished: "已结束",
 };
 
-function OnlineRooms({ rooms, connected, confirm }: {
+function OnlineRooms({ rooms, connected, confirm, busy, onJoin }: {
   rooms: PublicRoomSummary[];
   connected: boolean;
   confirm: ReturnType<typeof useConfirm>[0];
+  busy: boolean;
+  /** 从列表加入空座位（spectate 为 false）或者进去观战。 */
+  onJoin: (roomId: string, spectate: boolean) => void;
 }) {
   const onlineCount = rooms.reduce(
     (total, room) => total + room.players.filter((player) => player.connected).length,
@@ -57,7 +60,11 @@ function OnlineRooms({ rooms, connected, confirm }: {
             <article className={`online-room ${room.status}`} key={room.id}>
               <div className="online-room-top">
                 <span className={`online-room-status ${room.status}`}>{statusLabels[room.status]}</span>
-                <span className="online-room-seats">{room.players.length} / {room.capacity} 人</span>
+                <span className="online-room-seats">
+                  {room.open ? <em className="online-room-tag open">公开</em> : null}
+                  {room.spectators > 0 ? <em className="online-room-tag">观战 {room.spectators}</em> : null}
+                  {room.players.length} / {room.capacity} 人
+                </span>
               </div>
               <ul className="online-room-players">
                 {room.players.map((player) => (
@@ -72,6 +79,18 @@ function OnlineRooms({ rooms, connected, confirm }: {
                   </li>
                 ))}
               </ul>
+              {(() => {
+                const canSit = room.open && room.status === "waiting" && room.players.length < room.capacity;
+                if (!canSit && !room.allowSpectators) return null;
+                return (
+                  <div className="online-room-actions">
+                    {canSit && <button className="online-room-join" type="button" disabled={busy || !connected} onClick={() => onJoin(room.id, false)}>加入</button>}
+                    {room.allowSpectators && room.status !== "finished" && (
+                      <button className="online-room-watch" type="button" disabled={busy || !connected} onClick={() => onJoin(room.id, true)}>观战</button>
+                    )}
+                  </div>
+                );
+              })()}
               {admin.token && (
                 <button className="admin-dissolve" type="button" onClick={() => dissolve(room)}>解散房间</button>
               )}
@@ -81,7 +100,7 @@ function OnlineRooms({ rooms, connected, confirm }: {
       ) : (
         <p className="online-rooms-empty">现在还没有房间，创建一间邀请朋友吧。</p>
       )}
-      <p className="online-rooms-note">房间为邀请制，这里不显示房间码。</p>
+      <p className="online-rooms-note">这里不显示房间码。房主设为公开的房间可以直接加入，允许观战的房间可以进去看。</p>
     </section>
   );
 }

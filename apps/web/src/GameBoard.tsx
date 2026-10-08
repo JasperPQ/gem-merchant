@@ -16,6 +16,7 @@ import {
   type TokenCounts,
 } from "@gem-merchant/game";
 import GameRules from "./GameRules.js";
+import { GameRoomMenu, SpectateBar } from "./RoomExtras.js";
 import { socket } from "./socket.js";
 import { useGameSounds, useSoundSetting } from "./sound.js";
 
@@ -232,7 +233,8 @@ function RivalPanel({
       <Holdings player={player} size="small" />
       {(player.reservedCards.length > 0 || player.nobles.length > 0) && (
         <div className="gm-rival-extras">
-          {player.reservedCards.map((card) => player.hiddenReservedCardIds.includes(card.id)
+          {/* 看不到内容的暗扣卡发来时 id 是 hidden-*（观战开了「看手牌」时是真卡）。 */}
+          {player.reservedCards.map((card) => card.id.startsWith("hidden-")
             ? <HiddenCard level={card.level} mini key={card.id} />
             : <CardFace card={card} mini key={card.id} />)}
           {player.nobles.map((noble) => (
@@ -348,10 +350,12 @@ function CardDialog({
 }
 
 /** 整轮结束后的继续投票：倒计时、已确认的玩家、继续/退出按钮。 */
-function RematchPanel({ room, winnerNames, onRematch }: {
+function RematchPanel({ room, winnerNames, spectating, onRematch, onLeave }: {
   room: LobbyRoomSnapshot;
   winnerNames: string[];
+  spectating: boolean;
   onRematch: (accept: boolean) => void;
+  onLeave: () => void;
 }) {
   const rematch = room.rematch;
   const secondsLeft = useCountdown(rematch?.remainingMs, room);
@@ -372,12 +376,16 @@ function RematchPanel({ room, winnerNames, onRematch }: {
               </span>
             ))}
           </div>
-          <div className="gm-panel-actions">
+          {spectating ? (
+            <div className="gm-panel-actions">
+              <button type="button" className="quiet-button" onClick={onLeave}>离开观战</button>
+            </div>
+          ) : <div className="gm-panel-actions">
             <button type="button" className="quiet-button" onClick={() => onRematch(false)}>退出房间</button>
             <button type="button" className="primary-button" disabled={myVote} onClick={() => onRematch(true)}>
               {myVote ? "等待其他玩家" : "继续下一局"}
             </button>
-          </div>
+          </div>}
         </div>
       )}
     </div>
@@ -395,6 +403,9 @@ function GameBoard({
   onAction,
   onRematch,
   onDissolve,
+  watchId,
+  onWatch,
+  onLeave,
   themeToggle,
 }: {
   room: LobbyRoomSnapshot;
@@ -407,6 +418,11 @@ function GameBoard({
   onAction: (action: GameAction) => void;
   onRematch: (accept: boolean) => void;
   onDissolve: () => void;
+  /** 观战时从这位玩家的座位看。 */
+  watchId: string;
+  onWatch: (playerId: string) => void;
+  /** 观战的人离开。 */
+  onLeave: () => void;
   themeToggle: ReactNode;
 }) {
   const game = room.game;
@@ -435,7 +451,9 @@ function GameBoard({
     return <section className="game-board-error">对局状态暂时不可用，请重新进入房间。</section>;
   }
 
-  const player = game.players.find((candidate) => candidate.id === socket.id);
+  // 观战的人没有座位：桌面按 watchId 那位玩家的座位摆（下方是他的东西），但什么都不能点。
+  const spectating = !room.members.some((member) => member.id === socket.id);
+  const player = game.players.find((candidate) => candidate.id === (spectating ? watchId : socket.id));
   const activePlayer = game.players[game.activePlayerIndex];
   if (!player || !activePlayer) {
     return <section className="game-board-error">找不到当前玩家的对局席位。</section>;
@@ -444,7 +462,7 @@ function GameBoard({
   const currentGame = game;
   const currentPlayer = player;
   const active = game.status === "active";
-  const isMyTurn = activePlayer.id === player.id && active;
+  const isMyTurn = !spectating && activePlayer.id === player.id && active;
   const actionLocked = !isMyTurn || busy || Boolean(returnPrompt);
   const pendingNobles = game.noblesAvailable.filter((noble) => game.pendingNobleIds.includes(noble.id));
   const availableDifferentColors = GEM_COLORS.filter((color) => game.bank[color] > 0).length;
@@ -551,7 +569,7 @@ function GameBoard({
     <div className="game-screen">
       <header className="gm-topbar">
         {brand}
-        <span className="gm-room-code" title="房间码">{room.code}</span>
+        {room.code && <span className="gm-room-code" title="房间码">{room.code}</span>}
         <span className={isMyTurn ? "turn-indicator my-turn" : "turn-indicator"}>
           <span className="turn-dot" />{turnText}{active && ` · ${turnSecondsLeft}s`}
         </span>
@@ -567,6 +585,7 @@ function GameBoard({
         >{soundOn ? "🔊 音效" : "🔇 音效"}</button>
         {themeToggle}
         <GameRules />
+        <GameRoomMenu room={room} />
         {room.members.find((member) => member.id === socket.id)?.isHost && (
           <button type="button" className="gm-dissolve" onClick={onDissolve}>解散房间</button>
         )}
@@ -574,6 +593,7 @@ function GameBoard({
       </header>
 
       <aside className="gm-rivals" aria-label="其他玩家">
+        {spectating && <SpectateBar room={room} watchId={player.id} onWatch={onWatch} onLeave={onLeave} />}
         {rivals.map((candidate) => (
           <RivalPanel
             key={candidate.id}
@@ -664,19 +684,19 @@ function GameBoard({
           </div>
         </div>
 
-        {!active && <RematchPanel room={room} winnerNames={winnerNames} onRematch={onRematch} />}
+        {!active && <RematchPanel room={room} winnerNames={winnerNames} spectating={spectating} onRematch={onRematch} onLeave={onLeave} />}
       </section>
 
-      <section className={`gm-me${isMyTurn ? " gm-me-turn" : ""}`} aria-label="你的物品">
+      <section className={`gm-me${isMyTurn ? " gm-me-turn" : ""}`} aria-label={spectating ? `${player.name}的物品` : "你的物品"}>
         <div className="gm-me-ident">
-          <strong className="gm-me-name">{player.name}</strong>
+          <strong className="gm-me-name">{player.name}{spectating ? "（观战视角）" : ""}</strong>
           <span className="gm-score gm-score-large" title={`${scores.get(player.id) ?? 0} 分`}>{scores.get(player.id) ?? 0}</span>
           <span className="gm-gem-total" title="持有宝石总数 / 上限">{countTokens(player.gems)}/10</span>
           {isMyTurn && <TurnTimer seconds={turnSecondsLeft} />}
         </div>
         <Holdings player={player} size="large" />
         <div className="gm-me-reserved" aria-label={`预留卡 ${player.reservedCards.length} / 3`}>
-          {player.reservedCards.map((card) => (
+          {player.reservedCards.map((card) => card.id.startsWith("hidden-") ? <HiddenCard level={card.level} key={card.id} /> : (
             <CardFace
               key={card.id}
               card={card}

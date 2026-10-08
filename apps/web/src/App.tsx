@@ -5,6 +5,7 @@ import { useConfirm } from "./confirm.js";
 import GameRules from "./GameRules.js";
 import OnlineRooms from "./OnlineRooms.js";
 import RoomChat from "./RoomChat.js";
+import { roomRole, RoomSettingsPanel, SeatSwitch } from "./RoomExtras.js";
 import { socket } from "./socket.js";
 import { ThemeToggle, useTheme } from "./theme.js";
 import { useVoice } from "./voice.js";
@@ -32,6 +33,8 @@ function App() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [lobbyRooms, setLobbyRooms] = useState<PublicRoomSummary[]>([]);
+  // 观战时从谁的座位看（默认第一位玩家）。
+  const [watchId, setWatchId] = useState("");
   const voice = useVoice(room);
   // 白天 / 夜间画面：首页、等候房间、牌桌共用，顶栏按钮随时切换；和游戏中心、其他游戏共用同一个选择。
   const [theme, toggleTheme] = useTheme();
@@ -87,6 +90,29 @@ function App() {
     if (!connected || busy || name.trim().length < 2 || name.trim().length > 18) return false;
     return mode === "create" || validRoomCode.test(roomCode);
   }, [busy, connected, mode, name, roomCode]);
+
+  /** 从首页列表加入空座位或进去观战（用上面填的昵称）。 */
+  function joinListed(roomId: string, spectate: boolean) {
+    const nickname = name.trim();
+    if (nickname.length < 2 || nickname.length > 18) {
+      setNotice("");
+      setError("先在上面填好你的昵称（2–18 个字符）。");
+      document.getElementById("player-name")?.focus();
+      return;
+    }
+    setError("");
+    setNotice("");
+    setBusy(true);
+    socket.emit("room:join", { name: nickname, roomId, spectate }, (response) => {
+      setBusy(false);
+      if (!response.ok) {
+        setError(response.error);
+        return;
+      }
+      setRoom(response.data);
+      setNotice(spectate ? "正在观战。" : "已加入房间。");
+    });
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -189,6 +215,8 @@ function App() {
   }
 
   if (room?.status === "playing" && room.game) {
+    const players = room.game.players;
+    const watched = players.some((player) => player.id === watchId) ? watchId : players[0]!.id;
     return (
       <main className="game-shell">
         <GameBoard
@@ -202,6 +230,9 @@ function App() {
           onAction={submitGameAction}
           onRematch={voteRematch}
           onDissolve={dissolveRoom}
+          watchId={watched}
+          onWatch={setWatchId}
+          onLeave={leaveRoom}
           themeToggle={<ThemeToggle theme={theme} onToggle={toggleTheme} className="gm-sound-toggle" />}
         />
         {confirmDialog}
@@ -355,7 +386,7 @@ function App() {
               {!busy && <span aria-hidden="true">↗</span>}
             </button>
           </form>
-          <div className="entry-footnote"><span className="lock-icon">◇</span> 私人房间 · 邀请制加入</div>
+          <div className="entry-footnote"><span className="lock-icon">◇</span> 默认邀请制 · 房主可以设为公开</div>
         </section>
       </section>
 
@@ -366,7 +397,7 @@ function App() {
         <span className="how-divider" />
         <div className="how-item"><span className="how-number">03</span><span>开始对局</span></div>
       </section>
-      <OnlineRooms rooms={lobbyRooms} connected={connected} confirm={confirm} />
+      <OnlineRooms rooms={lobbyRooms} connected={connected} confirm={confirm} busy={busy} onJoin={joinListed} />
       <footer className="page-footer">围坐桌边，专注每一次选择。</footer>
       {confirmDialog}
     </main>
@@ -415,8 +446,7 @@ function RoomView({
   onDissolve: () => void;
 }) {
   const host = room.members.find((member) => member.isHost);
-  const currentMember = room.members.find((member) => member.id === socket.id);
-  const isHost = currentMember?.isHost ?? false;
+  const { isHost, spectating } = roomRole(room);
   const openSeats = Math.max(0, room.capacity - room.members.length);
 
   return (
@@ -424,13 +454,13 @@ function RoomView({
       <div className="room-heading">
         <div>
           <div className="eyebrow"><span className="eyebrow-line" /> {room.status === "waiting" ? "等待大厅" : "对局已创建"}</div>
-          <h1>{room.status === "waiting" ? "牌桌准备中。" : "好戏即将开始。"}</h1>
-          <p>{room.status === "waiting" ? "把房间码分享给朋友，等大家就位后开始。" : "房间状态已同步，下一步将接入完整棋盘。"}</p>
+          <h1>{spectating ? "你在观战。" : room.status === "waiting" ? "牌桌准备中。" : "好戏即将开始。"}</h1>
+          <p>{spectating ? "等房主开始对局；有空座位时可以坐下一起玩。" : room.status === "waiting" ? "把房间码分享给朋友，等大家就位后开始。" : "房间状态已同步，下一步将接入完整棋盘。"}</p>
         </div>
         <div className="room-heading-actions">
           {isHost && <button className="quiet-button danger" type="button" onClick={onDissolve} disabled={busy}>解散房间</button>}
-          <button className="quiet-button" type="button" onClick={onLeave} disabled={busy || room.status === "playing"}>
-            离开房间
+          <button className="quiet-button" type="button" onClick={onLeave} disabled={busy || (room.status === "playing" && !spectating)}>
+            {spectating ? "离开观战" : "离开房间"}
           </button>
         </div>
       </div>
@@ -439,10 +469,16 @@ function RoomView({
         <div className="room-grid">
           <section className="room-panel room-code-panel">
             <div className="panel-label">房间码 <span>仅分享给朋友</span></div>
-            <button className="room-code-display" type="button" onClick={onCopyCode} title="复制房间码">
-              {room.code}<span aria-hidden="true">⧉</span>
-            </button>
-            <div className="room-code-caption">点击复制 · 6 位邀请代码</div>
+            {room.code ? (
+              <>
+                <button className="room-code-display" type="button" onClick={onCopyCode} title="复制房间码">
+                  {room.code}<span aria-hidden="true">⧉</span>
+                </button>
+                <div className="room-code-caption">点击复制 · 6 位邀请代码</div>
+              </>
+            ) : (
+              <div className="room-code-caption">从首页列表进来观战，看不到房间码</div>
+            )}
           </section>
 
           <section className="room-panel player-panel">
@@ -467,7 +503,7 @@ function RoomView({
               {Array.from({ length: openSeats }, (_, index) => (
                 <div className="player-row open-seat" key={`open-${index}`}>
                   <div className="empty-avatar"><span>＋</span></div>
-                  <div className="player-details"><strong>等待玩家加入</strong><span>分享房间码邀请朋友</span></div>
+                  <div className="player-details"><strong>等待玩家加入</strong><span>{room.access.open ? "公开房间，路过的人也能加入" : "分享房间码邀请朋友"}</span></div>
                 </div>
               ))}
             </div>
@@ -490,13 +526,15 @@ function RoomView({
               </div>
               <p className="field-hint">超时未行动将自动跳过该玩家的回合。</p>
             </div>
+            <RoomSettingsPanel room={room} />
+            <SeatSwitch room={room} />
             <div className="room-actions">
               {isHost ? (
                 <button className="primary-button" type="button" onClick={onStart} disabled={busy || room.members.length < 2}>
                   {busy ? <><span className="spinner" /> 正在开始</> : "开始对局"}<span aria-hidden="true">↗</span>
                 </button>
               ) : (
-                <div className="host-wait-note"><span className="pulse-dot" /> 等待房主开始对局</div>
+                <div className="host-wait-note"><span className="pulse-dot" /> {spectating ? "等房主开始，开始后在这里观战" : "等待房主开始对局"}</div>
               )}
               {isHost && room.members.length < 2 && <p className="field-hint centered">还需要至少 1 位玩家加入。</p>}
             </div>
@@ -516,7 +554,7 @@ function RoomView({
 
       {error && <p className="feedback feedback-error room-feedback" role="alert">{error}</p>}
       {notice && <p className="feedback feedback-success room-feedback" role="status">{notice}</p>}
-      <div className="room-secure-note"><span>◇</span> 房间为私人邀请制，不会出现在公开列表。</div>
+      <div className="room-secure-note"><span>◇</span> {room.access.open ? "公开房间：首页列表里的人可以直接加入空座位。" : "邀请制：要有房间码才能加入；首页列表不显示房间码。"}</div>
     </section>
   );
 }

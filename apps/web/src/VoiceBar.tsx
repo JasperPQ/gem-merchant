@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import type { LobbyRoomSnapshot } from "@gem-merchant/game";
 import { socket } from "./socket.js";
 import type { VoiceControls } from "./voice.js";
@@ -13,6 +14,11 @@ const connectionLabels: Partial<Record<RTCPeerConnectionState, string>> = {
 function VoiceBar({ room, voice }: { room: LobbyRoomSnapshot; voice: VoiceControls }) {
   const nameOf = (id: string) => room.members.find((member) => member.id === id)?.name ?? "玩家";
   const participants = room.voice;
+  const spectating = !room.members.some((member) => member.id === socket.id);
+  // 从座位改成观战时，服务器已经把人移出语音；这边也挂断。
+  useEffect(() => {
+    if (spectating && voice.joined) voice.leave();
+  }, [spectating, voice.joined]);
 
   return (
     <div className="voice-bar">
@@ -30,6 +36,8 @@ function VoiceBar({ room, voice }: { room: LobbyRoomSnapshot; voice: VoiceContro
             </button>
             <button type="button" className="voice-button leave" onClick={voice.leave}>退出语音</button>
           </>
+        ) : spectating ? (
+          <span className="voice-count">观战时不能进语音</span>
         ) : (
           <button type="button" className="voice-button join" onClick={voice.join} disabled={voice.joining}>
             {voice.joining ? "正在加入…" : "🎧 加入语音"}

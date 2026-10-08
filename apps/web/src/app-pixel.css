@@ -333,3 +333,50 @@ body { background: repeating-conic-gradient(#13101a 0 25%, #0e0c13 0 50%) 0 0 / 
   /* 像素字体最小 12px，「解散房间」「离开房间」两个按钮比原版宽：按钮组保持原宽，让左边的标题文字换行 */
   .app-shell .room-heading-actions { flex: 0 0 auto; }
 }
+
+/* ---------- 房间设置、观战（几款游戏共用这一段；宝石商人的牌桌外层是 .game-shell） ---------- */
+:is(.app-shell, .game-shell) .room-settings { display: grid; gap: 8px; margin-top: 12px; }
+:is(.app-shell, .game-shell) .room-settings-options { display: flex; flex-wrap: wrap; gap: 8px; }
+:is(.app-shell, .game-shell) .room-setting {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 10px;
+  border: 0; color: var(--muted); background: var(--panel-2); cursor: pointer;
+  box-shadow: 0 0 0 var(--px) var(--edge), inset var(--px) var(--px) 0 0 var(--rim), inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--shade);
+}
+:is(.app-shell, .game-shell) .room-setting i { width: 10px; height: 10px; background: var(--edge); box-shadow: inset 0 0 0 var(--px) var(--muted); }
+:is(.app-shell, .game-shell) .room-setting.on { --rim: var(--gold); --shade: #7a5410; color: var(--gold); background: #3a2c10; }
+:is(.app-shell, .game-shell) .room-setting.on i { background: var(--gold); box-shadow: none; }
+:is(.app-shell, .game-shell) .room-setting:disabled { cursor: default; }
+:is(.app-shell, .game-shell) .room-setting:disabled:not(.on) { opacity: 0.6; }
+:is(.app-shell, .game-shell) .room-spectators { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--muted); }
+:is(.app-shell, .game-shell) .room-spectator { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; color: var(--text); background: var(--panel-2); }
+:is(.app-shell, .game-shell) .room-spectator button { padding: 0 4px; border: 0; color: var(--bad); background: none; cursor: pointer; }
+:is(.app-shell, .game-shell) .seat-switch { display: grid; gap: 6px; margin-top: 10px; }
+:is(.app-shell, .game-shell) .online-room-tag { margin-right: 6px; padding: 0 6px; color: var(--muted); background: var(--panel-2); font-style: normal; }
+:is(.app-shell, .game-shell) .online-room-tag.open { color: #2a1c06; background: var(--gold); }
+:is(.app-shell, .game-shell) .online-room-actions { display: flex; gap: 8px; margin-top: 8px; }
+:is(.app-shell, .game-shell) :is(.online-room-join, .online-room-watch) {
+  flex: 1; min-height: 32px; border: 0; cursor: pointer; color: var(--text); background: var(--panel-2);
+  box-shadow: 0 0 0 var(--px) var(--edge), inset var(--px) var(--px) 0 0 var(--rim), inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--shade);
+}
+:is(.app-shell, .game-shell) .online-room-join { --rim: #fff2b8; --shade: #7a5410; color: #2a1c06; background: var(--gold); }
+:is(.app-shell, .game-shell) :is(.online-room-join, .online-room-watch):disabled { cursor: default; opacity: 0.6; }
+:is(.app-shell, .game-shell) .room-chat-spectator { margin-left: 4px; padding: 0 4px; color: var(--muted); background: var(--panel-2); font-size: 12px; }
+:is(.app-shell, .game-shell) .spectator-count { align-self: center; padding: 2px 8px; color: var(--muted); background: var(--panel-2); }
+:is(.app-shell, .game-shell) .game-room-menu { position: relative; display: inline-flex; }
+:is(.app-shell, .game-shell) .game-room-popover {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 40; display: grid; gap: 10px; width: min(320px, 90vw); padding: 14px;
+  background: var(--panel); box-shadow: 0 0 0 var(--px) var(--edge), inset var(--px) var(--px) 0 0 var(--rim), 0 8px 0 0 rgba(0, 0, 0, 0.35);
+}
+:is(.app-shell, .game-shell) .game-room-popover .room-settings { margin-top: 0; }
+:is(.app-shell, .game-shell) .game-room-popover .panel-label { color: var(--text); font-size: 12px; font-weight: 400; }
+:is(.app-shell, .game-shell) .game-room-popover .panel-label > span { margin-left: 8px; color: var(--muted); }
+:is(.app-shell, .game-shell) .spectate-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; background: var(--panel);
+  box-shadow: 0 0 0 var(--px) var(--edge), inset var(--px) var(--px) 0 0 var(--gold-2), inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--shade);
+}
+:is(.app-shell, .game-shell) .spectate-bar strong { color: var(--gold); font-size: 24px; font-weight: 400; line-height: 1; }
+:is(.app-shell, .game-shell) .spectate-hint { color: var(--muted); }
+:is(.app-shell, .game-shell) .spectate-seats { display: flex; flex-wrap: wrap; gap: 6px; }
+:is(.app-shell, .game-shell) .spectate-seat { min-height: 28px; padding: 2px 8px; border: 0; color: var(--muted); background: var(--panel-2); cursor: pointer; }
+:is(.app-shell, .game-shell) .spectate-seat.on { color: #2a1c06; background: var(--gold); }
+:is(.app-shell, .game-shell) .spectate-bar .quiet-button { margin-left: auto; }

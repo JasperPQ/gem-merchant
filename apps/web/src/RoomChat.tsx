@@ -51,7 +51,7 @@ function RoomChat({ room, voice }: { room: LobbyRoomSnapshot; voice: VoiceContro
         {messages.length > 0 ? messages.map((entry) => (
           <div className={entry.senderId === socket.id ? "room-chat-message mine" : "room-chat-message"} key={entry.id}>
             <div className="room-chat-meta">
-              <strong>{entry.senderId === socket.id ? "你" : entry.name}</strong>
+              <strong>{entry.senderId === socket.id ? "你" : entry.name}{entry.spectator && <small className="room-chat-spectator">观战</small>}</strong>
               <time dateTime={entry.createdAt}>{formatTime(entry.createdAt)}</time>
             </div>
             <p>{entry.message}</p>
