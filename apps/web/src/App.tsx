@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { TURN_SECONDS_OPTIONS, type GameAction, type LobbyRoomSnapshot, type PublicRoomSummary, type TurnSeconds } from "@gem-merchant/game";
 import GameBoard from "./GameBoard.js";
-import { useBoardStyle } from "./boardStyle.js";
 import { useConfirm } from "./confirm.js";
 import GameRules from "./GameRules.js";
-// 首页和等候房间的像素皮肤：只在像素版时放进页面，叠在原始的 styles.css 上。
-import appPixelCss from "./app-pixel.css?inline";
 import OnlineRooms from "./OnlineRooms.js";
 import RoomChat from "./RoomChat.js";
 import { socket } from "./socket.js";
+import { ThemeToggle, useTheme } from "./theme.js";
 import { useVoice } from "./voice.js";
 
 type EntryMode = "create" | "join";
@@ -35,21 +33,10 @@ function App() {
   const [notice, setNotice] = useState("");
   const [lobbyRooms, setLobbyRooms] = useState<PublicRoomSummary[]>([]);
   const voice = useVoice(room);
-  // 画面风格（默认像素版）：首页、等候房间、牌桌共用，顶栏按钮随时切换。
-  const [boardStyle, toggleBoardStyle] = useBoardStyle();
-  const pixel = boardStyle === "pixel";
-  const pixelSkin = pixel && <style>{appPixelCss}</style>;
-  const styleToggle = <StyleToggle pixel={pixel} onToggle={toggleBoardStyle} />;
-  // 解散房间等确认：像素版用像素弹窗，原始版本照旧用浏览器确认框。
-  const [confirm, confirmDialog] = useConfirm(pixel);
-  // 手机浏览器地址栏的颜色跟着画面风格走：像素版深色，原始版本保持 index.html 里的米色。
-  useEffect(() => {
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (!meta) return;
-    const original = meta.getAttribute("content") ?? "";
-    if (pixel) meta.setAttribute("content", "#0e0c13");
-    return () => meta.setAttribute("content", original);
-  }, [pixel]);
+  // 白天 / 夜间画面：首页、等候房间、牌桌共用，顶栏按钮随时切换；和游戏中心、其他游戏共用同一个选择。
+  const [theme, toggleTheme] = useTheme();
+  // 解散房间等确认用像素弹窗。
+  const [confirm, confirmDialog] = useConfirm();
 
   // 在房间里时服务端不推送在线牌桌列表；回到首页时主动拉一次最新的。
   useEffect(() => {
@@ -186,7 +173,6 @@ function App() {
       title: "解散房间？",
       detail: "所有玩家都会被移出，当前对局也会结束。",
       confirmLabel: "解散房间",
-      classicText: "确定解散房间吗？所有玩家都会被移出，当前对局也会结束。",
     });
     if (!ok) return;
     roomCommand((ack) => socket.emit("room:dissolve", ack));
@@ -216,8 +202,7 @@ function App() {
           onAction={submitGameAction}
           onRematch={voteRematch}
           onDissolve={dissolveRoom}
-          boardStyle={boardStyle}
-          onToggleBoardStyle={toggleBoardStyle}
+          themeToggle={<ThemeToggle theme={theme} onToggle={toggleTheme} className="gm-sound-toggle" />}
         />
         {confirmDialog}
       </main>
@@ -227,15 +212,14 @@ function App() {
   if (room) {
     return (
       <main className="app-shell">
-        {pixelSkin}
         <header className="topbar">
           <Brand />
           <div className="topbar-right">
-            {styleToggle}
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
             <ConnectionStatus connected={connected} />
           </div>
         </header>
-        <GameRules pixel={pixel} />
+        <GameRules />
         <RoomView
           room={room}
           busy={busy}
@@ -257,11 +241,10 @@ function App() {
 
   return (
     <main className="app-shell">
-      {pixelSkin}
       <header className="topbar">
         <Brand />
         <div className="topbar-right">
-          {styleToggle}
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
           <a className="center-link" href={CENTER_URL}>← 游戏中心</a>
           <ConnectionStatus connected={connected} />
         </div>
@@ -396,20 +379,6 @@ function Brand() {
       <span className="brand-mark" aria-hidden="true"><i /><i /><i /></span>
       <span className="brand-name">宝石商人<span> GEM MERCHANT</span></span>
     </a>
-  );
-}
-
-/** 顶栏的画面切换按钮：像素版 ⇄ 原始版本，只影响自己看到的画面。 */
-function StyleToggle({ pixel, onToggle }: { pixel: boolean; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      className="quiet-button style-toggle"
-      onClick={onToggle}
-      title={pixel ? "换回原始版本的画面（只影响你自己看到的）" : "换成像素风画面（只影响你自己看到的）"}
-    >
-      {pixel ? "切换原版" : "切换像素版"}
-    </button>
   );
 }
 

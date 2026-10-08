@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode, type SyntheticEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode, type SyntheticEvent } from "react";
 import {
   GEM_COLORS,
   TOKEN_COLORS,
@@ -15,18 +15,9 @@ import {
   type TokenColor,
   type TokenCounts,
 } from "@gem-merchant/game";
-import type { BoardStyle } from "./boardStyle.js";
 import GameRules from "./GameRules.js";
 import { socket } from "./socket.js";
 import { useGameSounds, useSoundSetting } from "./sound.js";
-// 两套画面各一份样式表，同一时间只把当前那套放进页面，互不干扰：
-// game.css 是像素版，game-classic.css 是原始版本（和改版前一字不差），game-classic-extra.css 补新加内容的规则。
-import pixelCss from "./game.css?inline";
-import classicCss from "./game-classic.css?inline";
-import classicExtraCss from "./game-classic-extra.css?inline";
-
-/** 当前是不是像素版画面；原始版本按改版前的样子渲染。 */
-const PixelBoard = createContext(true);
 
 // 颜色名只用于悬停提示和读屏，界面上用颜色本身表达。
 const colorNames: Record<TokenColor, string> = {
@@ -81,26 +72,15 @@ function costText(cost: Partial<Record<GemColor, number>>): string {
   return GEM_COLORS.filter((color) => (cost[color] ?? 0) > 0).map((color) => `${colorNames[color]}${cost[color]}`).join(" ") || "无";
 }
 
-function cardLabel(card: DevelopmentCard, pixel: boolean): string {
-  return pixel
-    ? `${colorNames[card.bonusColor]}色土地 · ${card.points}分 · 费用 ${costText(card.cost)}`
-    : `${card.level}级土地 · ${card.points}分 · ${colorNames[card.bonusColor]}色抵扣 · 费用 ${costText(card.cost)}`;
+function cardLabel(card: DevelopmentCard): string {
+  return `${colorNames[card.bonusColor]}色土地 · ${card.points}分 · 费用 ${costText(card.cost)}`;
 }
 
 function nobleLabel(noble: Noble): string {
   return `贵族 ${noble.points}分 · 需要土地 ${costText(noble.requirements)}`;
 }
 
-/** 原始版本：卡牌右上角的等级点。 */
-function LevelDots({ level }: { level: number }) {
-  return (
-    <span className="gm-level" aria-hidden="true">
-      {Array.from({ length: level }, (_, index) => <i key={index} />)}
-    </span>
-  );
-}
-
-/** 像素版：卡牌右上角是这张牌产出的宝石。 */
+/** 卡牌右上角是这张牌产出的宝石。 */
 function BonusGem({ color }: { color: GemColor }) {
   return <i className={`gm-card-gem gm-c-${color}`} aria-hidden="true" />;
 }
@@ -112,10 +92,7 @@ function hideOnError(event: SyntheticEvent<HTMLImageElement>) {
   event.currentTarget.hidden = true;
 }
 
-/**
- * 土地卡。像素版：插画铺满整张牌，左上分数、右上产出的宝石、左下费用；买得起的牌播放动态版（逐帧精灵图）。
- * 原始版本：背景色即永久抵扣色，左上分数、右上等级点、左下费用。
- */
+/** 土地卡：插画铺满整张牌，左上分数、右上产出的宝石、左下费用；买得起的牌播放动态版（逐帧精灵图）。 */
 function CardFace({
   card,
   affordable = false,
@@ -129,19 +106,16 @@ function CardFace({
   mini?: boolean;
   onClick?: () => void;
 }) {
-  const pixel = useContext(PixelBoard);
   const className = `gm-card gm-c-${card.bonusColor}${affordable ? " gm-affordable" : ""}${mini ? " gm-card-mini" : ""}`;
   const content = (
     <>
-      {pixel && (
-        <span className="gm-card-art" aria-hidden="true">
-          <img src={`${ART_BASE}cards/${card.id}.png`} alt="" loading="lazy" onError={hideOnError} />
-          {animated && !mini && <span className="gm-card-anim" style={{ backgroundImage: `url(${ART_BASE}cards-anim/${card.id}.png)` }} />}
-        </span>
-      )}
+      <span className="gm-card-art" aria-hidden="true">
+        <img src={`${ART_BASE}cards/${card.id}.png`} alt="" loading="lazy" onError={hideOnError} />
+        {animated && !mini && <span className="gm-card-anim" style={{ backgroundImage: `url(${ART_BASE}cards-anim/${card.id}.png)` }} />}
+      </span>
       <span className="gm-card-top">
         <b className="gm-card-points">{card.points > 0 ? card.points : ""}</b>
-        {pixel ? !mini && <BonusGem color={card.bonusColor} /> : <LevelDots level={card.level} />}
+        {!mini && <BonusGem color={card.bonusColor} />}
       </span>
       {!mini && (
         <span className="gm-card-cost">
@@ -152,7 +126,7 @@ function CardFace({
       )}
     </>
   );
-  const label = cardLabel(card, pixel);
+  const label = cardLabel(card);
   return onClick ? (
     <button type="button" className={className} onClick={onClick} title={label} aria-label={label}>{content}</button>
   ) : (
@@ -161,15 +135,6 @@ function CardFace({
 }
 
 function HiddenCard({ level, mini = false }: { level: number; mini?: boolean }) {
-  const pixel = useContext(PixelBoard);
-  if (!pixel) {
-    const label = `${level}级暗抽预留卡，内容不可见`;
-    return (
-      <span className={`gm-card gm-card-back${mini ? " gm-card-mini" : ""}`} title={label} role="img" aria-label={label}>
-        <span className="gm-card-top"><b /><LevelDots level={level} /></span>
-      </span>
-    );
-  }
   const label = "暗抽预留的土地，内容不可见";
   return <span className={`gm-card gm-card-back gm-back-l${level}${mini ? " gm-card-mini" : ""}`} title={label} role="img" aria-label={label} />;
 }
@@ -178,12 +143,11 @@ function HiddenCard({ level, mini = false }: { level: number; mini?: boolean }) 
 const ANIMATED_NOBLES = new Set(["N-11"]);
 
 function NobleTile({ noble }: { noble: Noble }) {
-  const pixel = useContext(PixelBoard);
   const label = nobleLabel(noble);
   return (
     <span className="gm-noble" title={label} role="img" aria-label={label}>
-      {pixel && <img className="gm-noble-art" src={`${ART_BASE}nobles/${noble.id}.png`} alt="" loading="lazy" onError={hideOnError} />}
-      {pixel && ANIMATED_NOBLES.has(noble.id) && (
+      <img className="gm-noble-art" src={`${ART_BASE}nobles/${noble.id}.png`} alt="" loading="lazy" onError={hideOnError} />
+      {ANIMATED_NOBLES.has(noble.id) && (
         <span className="gm-noble-anim" aria-hidden="true" style={{ backgroundImage: `url(${ART_BASE}nobles-anim/${noble.id}.png)` }} />
       )}
       <b>{noble.points}</b>
@@ -299,7 +263,6 @@ function CardDialog({
   onBuy: (source: BuySource) => void;
   onReserve: (level: 1 | 2 | 3, card: DevelopmentCard) => void;
 }) {
-  const pixel = useContext(PixelBoard);
   const closeRef = useRef<HTMLButtonElement>(null);
   const { card, source } = selected;
   const remaining = getRemainingCost(player, card);
@@ -331,7 +294,7 @@ function CardDialog({
         <div className="gm-card-dialog-art"><CardFace card={card} animated={active && shortfall === 0} /></div>
         <div className="gm-card-dialog-body">
           <h2 id="gm-card-dialog-title">
-            {source.kind === "reserved" ? "你的预留卡" : pixel ? `${colorNames[card.bonusColor]}色土地` : `${card.level} 级土地`}
+            {source.kind === "reserved" ? "你的预留卡" : `${colorNames[card.bonusColor]}色土地`}
           </h2>
           <div className="gm-dialog-row" title="扣除你已有土地后，还需支付的宝石">
             <span>需付</span>
@@ -421,7 +384,7 @@ function RematchPanel({ room, winnerNames, onRematch }: {
   );
 }
 
-function GameTable({
+function GameBoard({
   room,
   busy,
   error,
@@ -432,7 +395,7 @@ function GameTable({
   onAction,
   onRematch,
   onDissolve,
-  onToggleBoardStyle,
+  themeToggle,
 }: {
   room: LobbyRoomSnapshot;
   busy: boolean;
@@ -444,9 +407,8 @@ function GameTable({
   onAction: (action: GameAction) => void;
   onRematch: (accept: boolean) => void;
   onDissolve: () => void;
-  onToggleBoardStyle: () => void;
+  themeToggle: ReactNode;
 }) {
-  const pixel = useContext(PixelBoard);
   const game = room.game;
   const [selectedColors, setSelectedColors] = useState<GemColor[]>([]);
   const [selectedCard, setSelectedCard] = useState<SelectedCard | null>(null);
@@ -546,17 +508,11 @@ function GameTable({
     const gainsGold = currentGame.bank.gold > 0;
     const goldText = gainsGold ? "，并获得 1 枚金色宝石" : "；金色宝石已拿完，本次不获得";
     setConfirmPrompt({
-      title: pixel ? "暗抽预留一张土地？" : `暗抽预留 ${level} 级土地？`,
-      detail: pixel
-        ? `从这一排的牌堆顶暗抽一张加入你的预留区（其他玩家看不到内容）${goldText}。`
-        : `从 ${level} 级牌堆顶暗抽一张加入你的预留区（其他玩家看不到内容）${goldText}。`,
+      title: "暗抽预留一张土地？",
+      detail: `从这一排的牌堆顶暗抽一张加入你的预留区（其他玩家看不到内容）${goldText}。`,
       preview: (
         <>
-          {pixel ? (
-            <span className={`gm-card gm-card-back gm-back-l${level} gm-confirm-card`} />
-          ) : (
-            <span className="gm-card gm-card-back gm-confirm-card"><span className="gm-card-top"><b /><LevelDots level={level} /></span></span>
-          )}
+          <span className={`gm-card gm-card-back gm-back-l${level} gm-confirm-card`} />
           {gainsGold && <span className="gm-token gm-c-gold">+1</span>}
         </>
       ),
@@ -609,13 +565,8 @@ function GameTable({
           aria-pressed={soundOn}
           title={soundOn ? "关闭游戏音效" : "开启游戏音效"}
         >{soundOn ? "🔊 音效" : "🔇 音效"}</button>
-        <button
-          type="button"
-          className="gm-sound-toggle gm-style-toggle"
-          onClick={onToggleBoardStyle}
-          title={pixel ? "换回原始版本的画面（只影响你自己看到的）" : "换成像素风画面（只影响你自己看到的）"}
-        >{pixel ? "切换原版" : "切换像素版"}</button>
-        <GameRules pixel={pixel} />
+        {themeToggle}
+        <GameRules />
         {room.members.find((member) => member.id === socket.id)?.isHost && (
           <button type="button" className="gm-dissolve" onClick={onDissolve}>解散房间</button>
         )}
@@ -685,20 +636,15 @@ function GameTable({
               {game.noblesAvailable.map((noble) => <NobleTile noble={noble} key={noble.id} />)}
             </div>
             {([3, 2, 1] as const).map((level) => (
-              <div className="gm-row" key={level} aria-label={pixel ? "土地" : `${level}级土地`}>
+              <div className="gm-row" key={level} aria-label="土地">
                 <button
                   type="button"
-                  className={`gm-card gm-card-back${pixel ? ` gm-back-l${level}` : ""} gm-deck${game.decks[level].length === 0 ? " gm-zero" : ""}`}
+                  className={`gm-card gm-card-back gm-back-l${level} gm-deck${game.decks[level].length === 0 ? " gm-zero" : ""}`}
                   disabled={actionLocked || player.reservedCards.length >= 3 || game.decks[level].length === 0}
                   onClick={() => reserveDeck(level)}
-                  title={pixel
-                    ? `牌堆剩余 ${game.decks[level].length} 张；点击暗抽预留一张`
-                    : `${level}级牌堆剩余 ${game.decks[level].length} 张；点击暗抽预留一张`}
-                  aria-label={pixel
-                    ? `暗抽预留这一排的土地，剩余 ${game.decks[level].length} 张`
-                    : `暗抽预留${level}级土地，剩余 ${game.decks[level].length} 张`}
+                  title={`牌堆剩余 ${game.decks[level].length} 张；点击暗抽预留一张`}
+                  aria-label={`暗抽预留这一排的土地，剩余 ${game.decks[level].length} 张`}
                 >
-                  {!pixel && <span className="gm-card-top"><b /><LevelDots level={level} /></span>}
                   <span className="gm-deck-count">{game.decks[level].length}</span>
                 </button>
                 {game.market[level].map((card) => (
@@ -831,17 +777,6 @@ function GameTable({
         </div>
       )}
     </div>
-  );
-}
-
-/** 外层：按当前画面风格（由 App 统一保管）只把那一套样式表放进页面，再渲染牌桌。 */
-function GameBoard({ boardStyle, ...props }: ComponentProps<typeof GameTable> & { boardStyle: BoardStyle }) {
-  const pixel = boardStyle === "pixel";
-  return (
-    <PixelBoard.Provider value={pixel}>
-      <style>{pixel ? pixelCss : classicCss + classicExtraCss}</style>
-      <GameTable {...props} />
-    </PixelBoard.Provider>
   );
 }
 

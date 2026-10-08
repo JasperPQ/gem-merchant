@@ -1,0 +1,6 @@
+/*
+ * 白天版手调的部分。大部分白天样式由 day-theme.ts 从 app-pixel.css、game.css 换色生成，
+ * 这里只放机械换色不合适的地方；选择器都以 :root[data-theme="day"] 开头。
+ */
+:root[data-theme="day"] { color-scheme: light; }
+:root[data-theme="day"] :is(.app-shell, .game-shell) * { scrollbar-color: #b8b1c6 var(--bg); }

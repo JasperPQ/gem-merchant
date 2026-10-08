@@ -26,7 +26,6 @@ function OnlineRooms({ rooms, connected, confirm }: {
       title: "解散这个房间？",
       detail: `${names}，所有玩家都会被移出。`,
       confirmLabel: "解散房间",
-      classicText: `确定解散这个房间吗？（${names}）所有玩家都会被移出。`,
     });
     if (!ok) return;
     admin.setError("");

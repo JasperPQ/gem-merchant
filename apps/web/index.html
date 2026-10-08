@@ -3,7 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f5f3ee" />
+    <meta name="theme-color" content="#0e0c13" />
+    <!-- 白天 / 夜间画面：样式生效前先定下来，打开页面时不会先闪一下深色（见 src/theme.tsx） -->
+    <script>try { if (localStorage.getItem("gm-pixel-theme") === "day") document.documentElement.dataset.theme = "day"; } catch (e) {}</script>
     <meta name="description" content="创建或加入一场简洁的宝石商人对局。" />
     <title>宝石商人 · 在线对战</title>
   </head>
