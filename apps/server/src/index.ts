@@ -487,7 +487,24 @@ function invalidNameMessage(payload: CreateRoomPayload | JoinRoomPayload): strin
   return normalizeName(payload?.name) ? null : "昵称长度需为 2–18 个字符。";
 }
 
+/**
+ * 同一个账号同时登录的设备有上限。网关（Caddy forward_auth）把每条连接属于哪次登录放在
+ * X-GC-Session 请求头里；游戏中心挤掉某次登录时发 admin:kick-session，这里断开它的所有连接。
+ */
+const socketsBySession = new Map<string, Set<string>>();
+
 io.on("connection", (socket) => {
+  const loginSession = socket.handshake.headers["x-gc-session"];
+  if (typeof loginSession === "string" && loginSession) {
+    const sockets = socketsBySession.get(loginSession) ?? new Set<string>();
+    sockets.add(socket.id);
+    socketsBySession.set(loginSession, sockets);
+    socket.on("disconnect", () => {
+      sockets.delete(socket.id);
+      if (sockets.size === 0 && socketsBySession.get(loginSession) === sockets) socketsBySession.delete(loginSession);
+    });
+  }
+
   socket.on("lobby:get", (ack) => {
     ack({ ok: true, data: roomSummaries() });
   });
@@ -887,6 +904,24 @@ io.on("connection", (socket) => {
   socket.on("admin:verify", (token, ack) => {
     const error = checkAdminToken(socket.id, token);
     ack(error ? { ok: false, error } : { ok: true, data: undefined });
+  });
+
+  socket.on("admin:kick-session", (payload, ack) => {
+    const error = checkAdminToken(socket.id, payload?.token);
+    if (error) {
+      ack({ ok: false, error });
+      return;
+    }
+    const ids = typeof payload?.sessionId === "string" ? [...(socketsBySession.get(payload.sessionId) ?? [])] : [];
+    let kicked = 0;
+    for (const id of ids) {
+      const target = io.sockets.sockets.get(id);
+      if (!target) continue;
+      target.emit("session:kicked");
+      target.disconnect(true);
+      kicked += 1;
+    }
+    ack({ ok: true, data: kicked });
   });
 
   socket.on("admin:dissolve", (payload, ack) => {

@@ -137,6 +137,8 @@ export interface ClientToServerEvents {
 	"room:dissolve": (ack: RoomAck<void>) => void;
 	"admin:verify": (token: string, ack: RoomAck<void>) => void;
 	"admin:dissolve": (payload: { roomId: string; token: string }, ack: RoomAck<void>) => void;
+	/** 游戏中心挤掉某次登录（同一账号登录的设备超出上限）时调用：断开属于这次登录的所有连接，回执是断开的连接数。 */
+	"admin:kick-session": (payload: { sessionId: string; token: string }, ack: RoomAck<number>) => void;
 	"voice:join": (payload: { muted: boolean }, ack: RoomAck<IceServerConfig[]>) => void;
 	"voice:mute": (muted: boolean, ack: RoomAck<void>) => void;
 	"voice:leave": (ack: RoomAck<void>) => void;
@@ -145,6 +147,8 @@ export interface ClientToServerEvents {
 
 export interface ServerToClientEvents {
 	"room:updated": (room: LobbyRoomSnapshot) => void;
+	/** 这次登录被同一账号的新登录挤掉了；收到后连接会被断开，网页回大厅看提示。 */
+	"session:kicked": () => void;
 	"room:error": (message: string) => void;
 	"lobby:updated": (rooms: PublicRoomSummary[]) => void;
 	/** 被移出房间或房间被解散。 */

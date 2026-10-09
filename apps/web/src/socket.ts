@@ -15,3 +15,8 @@ const options = {
 export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = serverUrl
   ? io(serverUrl, options)
   : io(options);
+
+// 同一个账号在更多浏览器/设备上登录、这次登录被挤掉时，服务端先发 session:kicked 再断开：回大厅看提示。
+socket.on("session:kicked", () => {
+  window.location.assign("/?gate=kicked");
+});
