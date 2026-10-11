@@ -12,5 +12,8 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!-- 右下角「写评价」悬浮窗，由大厅提供（game-center/public/gc-feedback.js）；牌桌和教程带 data-gc-table，那里不显示。
+         本地开发（网址带端口）时没有大厅，不加载。 -->
+    <script>if (!location.port) { var gcfb = document.createElement("script"); gcfb.src = "/gc-feedback.js"; gcfb.defer = true; document.body.appendChild(gcfb); }</script>
   </body>
 </html>

@@ -243,7 +243,7 @@ function App() {
 
   if (tutorialOpen && room?.status !== "playing") {
     return (
-      <main className="game-shell tut-on">
+      <main data-gc-table className="game-shell tut-on">
         <TutorialMode
           name={name}
           brand={<Brand />}
@@ -260,7 +260,7 @@ function App() {
     const players = room.game.players;
     const watched = players.some((player) => player.id === watchId) ? watchId : players[0]!.id;
     return (
-      <main className="game-shell">
+      <main data-gc-table className="game-shell">
         <GameBoard
           room={room}
           busy={busy}
