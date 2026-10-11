@@ -192,6 +192,8 @@ function App() {
   }
 
   const kickMember = (memberId: string) => roomCommand((ack) => socket.emit("room:kick", memberId, ack));
+  const addBot = () => roomCommand((ack) => socket.emit("room:add-bot", ack));
+  const setAuto = (enabled: boolean) => roomCommand((ack) => socket.emit("room:auto", enabled, ack));
   const setTurnSeconds = (seconds: TurnSeconds) => roomCommand((ack) => socket.emit("room:turnSeconds", seconds, ack));
   const voteRematch = (accept: boolean) => roomCommand((ack) => socket.emit("room:rematch", accept, ack));
   async function dissolveRoom() {
@@ -229,6 +231,7 @@ function App() {
           chat={<RoomChat room={room} voice={voice} />}
           onAction={submitGameAction}
           onRematch={voteRematch}
+          onAuto={setAuto}
           onDissolve={dissolveRoom}
           watchId={watched}
           onWatch={setWatchId}
@@ -260,6 +263,7 @@ function App() {
           onLeave={leaveRoom}
           onStart={startGame}
           onKick={kickMember}
+          onAddBot={addBot}
           onTurnSeconds={setTurnSeconds}
           onDissolve={dissolveRoom}
         />
@@ -286,7 +290,7 @@ function App() {
           <div className="eyebrow"><span className="eyebrow-line" /> 在线对战 · 2—4 人</div>
           <h1>Splendor</h1>
           <p className="welcome-description">
-            创建一间私人牌桌，或输入房间码加入朋友的对局。无需注册，选好昵称即可开始。
+            创建一间私人牌桌，或输入房间码加入朋友的对局；人不够可以加人机。选好昵称即可开始。
           </p>
           <div className="gem-showcase" aria-hidden="true">
             <span className="gem gem-white" />
@@ -359,7 +363,7 @@ function App() {
                     </button>
                   ))}
                 </div>
-                <p className="field-hint">至少 2 位玩家后，房主即可开始。</p>
+                <p className="field-hint">至少 2 位玩家后，房主即可开始；空座位可以加人机。</p>
               </>
             ) : (
               <>
@@ -431,6 +435,7 @@ function RoomView({
   onLeave,
   onStart,
   onKick,
+  onAddBot,
   onTurnSeconds,
   onDissolve,
 }: {
@@ -442,6 +447,7 @@ function RoomView({
   onLeave: () => void;
   onStart: () => void;
   onKick: (memberId: string) => void;
+  onAddBot: () => void;
   onTurnSeconds: (seconds: TurnSeconds) => void;
   onDissolve: () => void;
 }) {
@@ -492,9 +498,10 @@ function RoomView({
                   <div className={`player-avatar avatar-${index + 1}`}>{member.name.slice(0, 1).toUpperCase()}</div>
                   <div className="player-details">
                     <strong>{member.name}{member.id === socket.id ? <small>你</small> : null}</strong>
-                    <span>{member.isHost ? "房主" : "已加入"}</span>
+                    <span>{member.isHost ? "房主" : member.bot ? "人机 · 普通难度" : "已加入"}</span>
                   </div>
                   {member.isHost && <span className="host-badge">房主</span>}
+                  {member.bot && <span className="bot-badge">人机</span>}
                   {isHost && !member.isHost && (
                     <button className="kick-button" type="button" onClick={() => onKick(member.id)} title={`把 ${member.name} 移出房间`}>移出</button>
                   )}
@@ -504,6 +511,7 @@ function RoomView({
                 <div className="player-row open-seat" key={`open-${index}`}>
                   <div className="empty-avatar"><span>＋</span></div>
                   <div className="player-details"><strong>等待玩家加入</strong><span>{room.access.open ? "公开房间，路过的人也能加入" : "分享房间码邀请朋友"}</span></div>
+                  {isHost && <button className="quiet-button add-bot-button" type="button" onClick={onAddBot} disabled={busy}>加人机</button>}
                 </div>
               ))}
             </div>
@@ -524,7 +532,7 @@ function RoomView({
                   </button>
                 ))}
               </div>
-              <p className="field-hint">超时未行动将自动跳过该玩家的回合。</p>
+              <p className="field-hint">超时跳过这一回合；连续超时 2 次由人机托管。</p>
             </div>
             <RoomSettingsPanel room={room} />
             <SeatSwitch room={room} />
@@ -536,7 +544,7 @@ function RoomView({
               ) : (
                 <div className="host-wait-note"><span className="pulse-dot" /> {spectating ? "等房主开始，开始后在这里观战" : "等待房主开始对局"}</div>
               )}
-              {isHost && room.members.length < 2 && <p className="field-hint centered">还需要至少 1 位玩家加入。</p>}
+              {isHost && room.members.length < 2 && <p className="field-hint centered">还需要至少 1 位玩家加入，也可以点空座位上的「加人机」。</p>}
             </div>
           </section>
         </div>

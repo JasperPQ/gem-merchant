@@ -185,6 +185,10 @@
 .gm-avatar { --rim: #6b5c8f; width: 24px; height: 24px; flex: 0 0 24px; display: grid; place-items: center; color: var(--text); background: #332b44; }
 .gm-rival-name { min-width: 0; flex: 1; overflow: hidden; color: var(--text); text-overflow: ellipsis; white-space: nowrap; }
 .gm-offline { padding: 0 4px; color: #ffd8d0; background: #6e1020; }
+/* 人机 / 托管标签 */
+.gm-tag-bot { padding: 0 4px; color: #d8e8ff; background: #2a62c0; }
+.gm-tag-auto { padding: 0 4px; color: #2a1c06; background: #e0a830; }
+.gm-auto-cancel { padding: 2px 8px; font-size: 12px; white-space: nowrap; }
 .gm-score { --rim: #fff2b8; --shade: #7a5410; min-width: 28px; padding: 0 6px; color: #2a1c06; background: var(--gold); text-align: center; }
 .gm-rival-extras { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
 .gm-rival-extras .gm-card { height: 44px; }

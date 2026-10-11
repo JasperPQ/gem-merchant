@@ -42,7 +42,7 @@ body { background: repeating-conic-gradient(#13101a 0 25%, #0e0c13 0 50%) 0 0 / 
 /* ---------- 像素边框：四边各一条黑边、角上留空，内侧亮边 + 暗边 ---------- */
 .app-shell :is(
   .entry-card, .room-panel, .online-room, .online-rooms-empty, .online-rooms-count, .online-room-status,
-  .text-input, .capacity-option, .primary-button, .quiet-button, .kick-button, .host-badge, .waiting-pill,
+  .text-input, .capacity-option, .primary-button, .quiet-button, .kick-button, .host-badge, .bot-badge, .waiting-pill,
   .player-avatar, .empty-avatar, .ready-summary > div, .admin-bar, .admin-bar-button, .admin-dissolve,
   .game-rules-toggle, .game-rules-panel, .room-chat, .room-chat-list, .room-chat-message, .room-chat-input,
   .room-chat-send, .voice-bar, .voice-button, .voice-person, .gm-panel
@@ -258,6 +258,9 @@ body { background: repeating-conic-gradient(#13101a 0 25%, #0e0c13 0 50%) 0 0 / 
 .app-shell .player-details span { color: var(--muted); font-size: 12px; }
 .app-shell .host-badge { --rim: var(--gold-2); --shade: #2a1c06; padding: 0 6px; color: var(--gold); background: #3a2c10; font-size: 12px; }
 .app-shell .kick-button { padding: 2px 8px; font-size: 12px; }
+/* 人机：等待界面的「人机」标签和空座位上的「加人机」 */
+.app-shell .bot-badge { --rim: #8ec0ff; --shade: #0e2550; padding: 0 6px; color: #d8e8ff; background: #2a62c0; font-size: 12px; }
+.app-shell .add-bot-button { margin-left: auto; padding: 2px 8px; font-size: 12px; white-space: nowrap; }
 .app-shell .host-wait-note { color: var(--muted); font-size: 12px; }
 .app-shell .pulse-dot { background: var(--gold); animation: app-blink 1s steps(2, jump-none) infinite; }
 .app-shell .room-secure-note { color: var(--muted); font-size: 12px; }

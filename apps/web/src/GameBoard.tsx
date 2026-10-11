@@ -218,7 +218,8 @@ function RivalPanel({
   member: LobbyMember | undefined;
   score: number;
   active: boolean;
-  secondsLeft: number;
+  /** 人机、托管、离线的人轮到时没有倒计时（undefined）。 */
+  secondsLeft: number | undefined;
 }) {
   const offline = member?.connected === false;
   return (
@@ -226,8 +227,10 @@ function RivalPanel({
       <header className="gm-rival-head">
         <span className="gm-avatar">{player.name.slice(0, 1).toUpperCase()}</span>
         <strong className="gm-rival-name">{player.name}</strong>
-        {offline && <span className="gm-offline" title="离线">离线</span>}
-        {active && <TurnTimer seconds={secondsLeft} />}
+        {member?.bot && <span className="gm-tag-bot" title="人机（普通难度）">人机</span>}
+        {member?.auto && <span className="gm-tag-auto" title="连续超时，人机在替他打">托管</span>}
+        {offline && <span className="gm-offline" title="离线：轮到他时由人机代打">离线</span>}
+        {active && secondsLeft !== undefined && <TurnTimer seconds={secondsLeft} />}
         <span className="gm-score" title={`${score} 分`}>{score}</span>
       </header>
       <Holdings player={player} size="small" />
@@ -402,6 +405,7 @@ function GameBoard({
   chat,
   onAction,
   onRematch,
+  onAuto,
   onDissolve,
   watchId,
   onWatch,
@@ -417,6 +421,8 @@ function GameBoard({
   chat: ReactNode;
   onAction: (action: GameAction) => void;
   onRematch: (accept: boolean) => void;
+  /** 打开 / 取消自己的托管。 */
+  onAuto: (enabled: boolean) => void;
   onDissolve: () => void;
   /** 观战时从这位玩家的座位看。 */
   watchId: string;
@@ -563,7 +569,10 @@ function GameBoard({
   }
 
   const rivals = game.players.filter((candidate) => candidate.id !== player.id);
-  const turnText = !active ? "对局结束" : isMyTurn ? "轮到你行动" : `等待 ${activePlayer.name}`;
+  const myAuto = !spectating && room.members.find((member) => member.id === socket.id)?.auto === true;
+  // 人机、托管、离线的人轮到时服务器不发倒计时
+  const hasTimer = room.turnRemainingMs !== undefined;
+  const turnText = !active ? "对局结束" : myAuto ? "人机托管中" : isMyTurn ? "轮到你行动" : `等待 ${activePlayer.name}`;
 
   return (
     <div className="game-screen">
@@ -571,7 +580,7 @@ function GameBoard({
         {brand}
         {room.code && <span className="gm-room-code" title="房间码">{room.code}</span>}
         <span className={isMyTurn ? "turn-indicator my-turn" : "turn-indicator"}>
-          <span className="turn-dot" />{turnText}{active && ` · ${turnSecondsLeft}s`}
+          <span className="turn-dot" />{turnText}{active && hasTimer && ` · ${turnSecondsLeft}s`}
         </span>
         <span className="gm-feedback" role="status">
           {error ? <span className="gm-feedback-error">{error}</span> : notice}
@@ -601,7 +610,7 @@ function GameBoard({
             member={room.members.find((item) => item.id === candidate.id)}
             score={scores.get(candidate.id) ?? 0}
             active={active && candidate.id === activePlayer.id}
-            secondsLeft={turnSecondsLeft}
+            secondsLeft={hasTimer ? turnSecondsLeft : undefined}
           />
         ))}
       </aside>
@@ -692,7 +701,10 @@ function GameBoard({
           <strong className="gm-me-name">{player.name}{spectating ? "（观战视角）" : ""}</strong>
           <span className="gm-score gm-score-large" title={`${scores.get(player.id) ?? 0} 分`}>{scores.get(player.id) ?? 0}</span>
           <span className="gm-gem-total" title="持有宝石总数 / 上限">{countTokens(player.gems)}/10</span>
-          {isMyTurn && <TurnTimer seconds={turnSecondsLeft} />}
+          {isMyTurn && hasTimer && <TurnTimer seconds={turnSecondsLeft} />}
+          {myAuto && active && (
+            <button type="button" className="quiet-button gm-auto-cancel" onClick={() => onAuto(false)} title="连续超时后人机在替你打；点这里自己来">取消托管</button>
+          )}
         </div>
         <Holdings player={player} size="large" />
         <div className="gm-me-reserved" aria-label={`预留卡 ${player.reservedCards.length} / 3`}>
