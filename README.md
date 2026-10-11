@@ -25,3 +25,13 @@ pm2 按仓库根目录的 `ecosystem.config.cjs` 直接启动一个 `node --impo
 - 强度（`~/projects/qa-reports/tools/bots/sim-gem-merchant.ts`，各 300 局，座位轮换）：对随机 2/3/4 人 100/99/99%；对「买得起就买分最高的，否则朝差得最少的那张攒宝石」的贪心基线 2/3/4 人 90.3/65.0/36.7%（公平值 50/33/25%）。每步平均 0.46ms，最慢约 10ms。
 - 环境变量：`BOT_DELAY_SCALE`（人机停顿倍数，测试 0、本地试玩 0.3）、`TURN_MS`（覆盖每回合时长，测试用）。本地看人机：`TURN_MS=1500 BOT_DELAY_SCALE=0.3 npm run dev`。
 - 已知：规则上可能出现「供应区拿空、大家都攥着 10 枚宝石、预留满、什么都买不起」的死局（规则书没写怎么办，对局会一直跳过下去）。人机自对弈 900 局没出现，和随机乱走的对手 900 局里出现过 1–2 局。
+
+## 新手教程
+
+站内统一做法（参考欲罢不能，见 `~/projects/pipeline/handbook/tutorial-notes.md`）：剧本局 + 练习局「提示」+ 真实对局「第一次遇到」小贴士，向导咕噜嘎。
+
+- 入口：首页和等候房间的邀请卡（学过以后只剩「再看一遍」小按钮）；地址带 `?tutorial` 直接打开。等候房间里看教程不离开房间，房主一开局自动回牌桌。
+- 剧本 `packages/game/src/tutorial.ts`（25 步，约 3–4 分钟）：拿 3 枚不同色 → 同色拿 2 枚 → 买第一块土地 → 折扣 → 预留拿金色 → 10 枚上限 →（快进到中盘）→ 贵族要求 → 用金色买下预留的土地、贵族来访 → 到 15 分触发最后一轮 → 结算 → 人机和托管。引擎不用随机数，局面直接摆好；卡牌和贵族按 id 从 `data/*.json` 取（网页直接 import 这两个 JSON）。剧本单测在 `packages/game/test/tutorial.test.ts`。
+- 网页：共用教练层 `apps/web/src/tutorial/`（从欲罢不能复制，没改）；`TutorialMode.tsx` 拼假房间、接剧本和人机；`tutorialGame.ts` 是「提示」的说法和小贴士。GameBoard 多了 `selfMemberId` / `mode` / `finalActions` / `finalHidden` / `onSelection`；教程和练习局里「+2」和暗抽预留不弹确认框。
+- 「提示」（键盘 H）只在练习局、或者只有自己和人机的房间出现：人机从你的位置算一步，配一句理由，高亮要点的东西。
+- 走查脚本：`~/projects/qa-reports/tools/tut-gem.mjs <输出目录> <flow|skip|waiting|room> [1440|1920|1024|390] [night|day]`（先 `npm run dev`）。

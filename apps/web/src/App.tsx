@@ -8,6 +8,11 @@ import RoomChat from "./RoomChat.js";
 import { roomRole, RoomSettingsPanel, SeatSwitch } from "./RoomExtras.js";
 import { socket } from "./socket.js";
 import { ThemeToggle, useTheme } from "./theme.js";
+import { TutorialInvite } from "./tutorial/Invite.js";
+import { readTutorial } from "./tutorial/storage.js";
+import "./tutorial/tutorial.css";
+import { GAME_ID } from "./tutorialGame.js";
+import TutorialMode from "./TutorialMode.js";
 import { useVoice } from "./voice.js";
 
 type EntryMode = "create" | "join";
@@ -40,6 +45,26 @@ function App() {
   const [theme, toggleTheme] = useTheme();
   // 解散房间等确认用像素弹窗。
   const [confirm, confirmDialog] = useConfirm();
+  // 新手教程：首页或等候房间点进来（地址带 ?tutorial 时直接打开，游戏中心可以直接链过来）
+  const [tutorialOpen, setTutorialOpen] = useState(() => new URLSearchParams(window.location.search).has("tutorial"));
+
+  function closeTutorial() {
+    setTutorialOpen(false);
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("tutorial")) {
+      params.delete("tutorial");
+      const query = params.toString();
+      window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`);
+    }
+  }
+
+  // 在等候房间里看教程时，房主一开局就回到牌桌（不然这一步会超时、转成托管）
+  useEffect(() => {
+    if (tutorialOpen && room?.status === "playing") {
+      closeTutorial();
+      setNotice("对局开始了，教程先停在这里。");
+    }
+  }, [tutorialOpen, room?.status]);
 
   // 在房间里时服务端不推送在线牌桌列表；回到首页时主动拉一次最新的。
   useEffect(() => {
@@ -216,6 +241,21 @@ function App() {
     }
   }
 
+  if (tutorialOpen && room?.status !== "playing") {
+    return (
+      <main className="game-shell tut-on">
+        <TutorialMode
+          name={name}
+          brand={<Brand />}
+          themeToggle={<ThemeToggle theme={theme} onToggle={toggleTheme} className="gm-sound-toggle" />}
+          waitingRoom={room?.code}
+          onExit={closeTutorial}
+        />
+        {confirmDialog}
+      </main>
+    );
+  }
+
   if (room?.status === "playing" && room.game) {
     const players = room.game.players;
     const watched = players.some((player) => player.id === watchId) ? watchId : players[0]!.id;
@@ -254,6 +294,13 @@ function App() {
           </div>
         </header>
         <GameRules />
+        <TutorialInvite
+          record={readTutorial(GAME_ID)}
+          title="等人的时候，先学一下？"
+          text="咕噜嘎带你在真牌桌上走一局，3 分钟。不会离开房间，房主一开局就自动回来。"
+          again="再看一遍新手教程（不会离开房间）"
+          onOpen={() => setTutorialOpen(true)}
+        />
         <RoomView
           room={room}
           busy={busy}
@@ -292,6 +339,13 @@ function App() {
           <p className="welcome-description">
             创建一间私人牌桌，或输入房间码加入朋友的对局；人不够可以加人机。选好昵称即可开始。
           </p>
+          <TutorialInvite
+            record={readTutorial(GAME_ID)}
+            title="第一次玩？3 分钟学会"
+            text="咕噜嘎在真牌桌上带你走一局，学完和人机练一局。"
+            again="再看一遍新手教程"
+            onOpen={() => setTutorialOpen(true)}
+          />
           <div className="gem-showcase" aria-hidden="true">
             <span className="gem gem-white" />
             <span className="gem gem-blue" />

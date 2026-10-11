@@ -19,6 +19,9 @@ import GameRules from "./GameRules.js";
 import { GameRoomMenu, SpectateBar } from "./RoomExtras.js";
 import { socket } from "./socket.js";
 import { useGameSounds, useSoundSetting } from "./sound.js";
+import { Coach, TipToast } from "./tutorial/Coach.js";
+import { useFirstTimeTips } from "./tutorial/tips.js";
+import { detectTips, GAME_ID, hintFor, TIPS, type Hint } from "./tutorialGame.js";
 
 // 颜色名只用于悬停提示和读屏，界面上用颜色本身表达。
 const colorNames: Record<TokenColor, string> = {
@@ -100,12 +103,15 @@ function CardFace({
   animated = false,
   mini = false,
   onClick,
+  anchor,
 }: {
   card: DevelopmentCard;
   affordable?: boolean;
   animated?: boolean;
   mini?: boolean;
   onClick?: () => void;
+  /** 教程高亮用的 data-tutorial。 */
+  anchor?: string;
 }) {
   const className = `gm-card gm-c-${card.bonusColor}${affordable ? " gm-affordable" : ""}${mini ? " gm-card-mini" : ""}`;
   const content = (
@@ -129,7 +135,7 @@ function CardFace({
   );
   const label = cardLabel(card);
   return onClick ? (
-    <button type="button" className={className} onClick={onClick} title={label} aria-label={label}>{content}</button>
+    <button type="button" className={className} onClick={onClick} title={label} aria-label={label} data-tutorial={anchor}>{content}</button>
   ) : (
     <span className={className} title={label} role="img" aria-label={label}>{content}</span>
   );
@@ -143,10 +149,10 @@ function HiddenCard({ level, mini = false }: { level: number; mini?: boolean }) 
 // 有动态版的贵族：一直循环播放（不像土地那样要买得起才动）
 const ANIMATED_NOBLES = new Set(["N-11"]);
 
-function NobleTile({ noble }: { noble: Noble }) {
+function NobleTile({ noble, anchor }: { noble: Noble; anchor?: string }) {
   const label = nobleLabel(noble);
   return (
-    <span className="gm-noble" title={label} role="img" aria-label={label}>
+    <span className="gm-noble" title={label} role="img" aria-label={label} data-tutorial={anchor}>
       <img className="gm-noble-art" src={`${ART_BASE}nobles/${noble.id}.png`} alt="" loading="lazy" onError={hideOnError} />
       {ANIMATED_NOBLES.has(noble.id) && (
         <span className="gm-noble-anim" aria-hidden="true" style={{ backgroundImage: `url(${ART_BASE}nobles-anim/${noble.id}.png)` }} />
@@ -162,10 +168,10 @@ function NobleTile({ noble }: { noble: Noble }) {
 }
 
 /** 每种颜色一列：上方土地数（卡形），下方宝石数（圆形）。 */
-function Holdings({ player, size }: { player: PlayerState; size: "large" | "small" }) {
+function Holdings({ player, size, anchor }: { player: PlayerState; size: "large" | "small"; anchor?: string }) {
   const lands = getPlayerBonuses(player);
   return (
-    <div className={`gm-holdings gm-holdings-${size}`}>
+    <div className={`gm-holdings gm-holdings-${size}`} data-tutorial={anchor}>
       {TOKEN_COLORS.map((color) => {
         const land = color === "gold" ? null : lands[color];
         const label = color === "gold"
@@ -223,7 +229,7 @@ function RivalPanel({
 }) {
   const offline = member?.connected === false;
   return (
-    <article className={`gm-rival${active ? " gm-rival-active" : ""}${offline ? " gm-rival-offline" : ""}`}>
+    <article className={`gm-rival${active ? " gm-rival-active" : ""}${offline ? " gm-rival-offline" : ""}`} data-tutorial={`rival:${player.id}`}>
       <header className="gm-rival-head">
         <span className="gm-avatar">{player.name.slice(0, 1).toUpperCase()}</span>
         <strong className="gm-rival-name">{player.name}</strong>
@@ -295,7 +301,7 @@ function CardDialog({
       }}
     >
       <section className="gm-card-dialog" role="dialog" aria-modal="true" aria-labelledby="gm-card-dialog-title">
-        <button ref={closeRef} type="button" className="gm-dialog-close" onClick={onClose} aria-label="关闭卡牌详情">×</button>
+        <button ref={closeRef} type="button" className="gm-dialog-close" onClick={onClose} aria-label="关闭卡牌详情" data-tutorial="card-close">×</button>
         <div className="gm-card-dialog-art"><CardFace card={card} animated={active && shortfall === 0} /></div>
         <div className="gm-card-dialog-body">
           <h2 id="gm-card-dialog-title">
@@ -326,6 +332,7 @@ function CardDialog({
             <button
               type="button"
               className="primary-button"
+              data-tutorial="card-buy"
               disabled={!available || !isMyTurn || busy || shortfall > 0 || !active}
               onClick={() => {
                 onBuy(source.kind === "reserved"
@@ -338,6 +345,7 @@ function CardDialog({
               <button
                 type="button"
                 className="quiet-button"
+                data-tutorial="card-reserve"
                 disabled={!available || !isMyTurn || busy || player.reservedCards.length >= 3 || !active}
                 onClick={() => {
                   onReserve(source.level, card);
@@ -353,23 +361,29 @@ function CardDialog({
 }
 
 /** 整轮结束后的继续投票：倒计时、已确认的玩家、继续/退出按钮。 */
-function RematchPanel({ room, winnerNames, spectating, onRematch, onLeave }: {
+function RematchPanel({ room, winnerNames, spectating, myId, actions, onRematch, onLeave }: {
   room: LobbyRoomSnapshot;
   winnerNames: string[];
   spectating: boolean;
+  myId: string;
+  /** 教程练习局：换掉「再来一局」投票的按钮。 */
+  actions?: ReactNode;
   onRematch: (accept: boolean) => void;
   onLeave: () => void;
 }) {
   const rematch = room.rematch;
   const secondsLeft = useCountdown(rematch?.remainingMs, room);
   const accepted = new Set(rematch?.acceptedIds ?? []);
-  const myVote = accepted.has(socket.id ?? "");
+  const myVote = accepted.has(myId);
+  const scores = (room.game?.players ?? []).map((player) => `${player.name} ${getPlayerScore(player)} 分`).join(" · ");
 
   return (
-    <div className="gm-result" role="dialog" aria-labelledby="gm-result-title">
+    <div className="gm-result" role="dialog" aria-labelledby="gm-result-title" data-tutorial="result">
       <span>本局获胜</span>
       <strong id="gm-result-title">{winnerNames.join("、") || "平局"}</strong>
-      {rematch && (
+      <span className="gm-result-scores">{scores}</span>
+      {actions && <div className="gm-panel-actions">{actions}</div>}
+      {!actions && rematch && (
         <div className="gm-rematch">
           <p>再来一局？{secondsLeft} 秒内未确认视为退出。</p>
           <div className="gm-rematch-votes">
@@ -411,6 +425,11 @@ function GameBoard({
   onWatch,
   onLeave,
   themeToggle,
+  selfMemberId,
+  mode = "online",
+  finalActions,
+  finalHidden = false,
+  onSelection,
 }: {
   room: LobbyRoomSnapshot;
   busy: boolean;
@@ -430,6 +449,16 @@ function GameBoard({
   /** 观战的人离开。 */
   onLeave: () => void;
   themeToggle: ReactNode;
+  /** 自己在 room.members 里的 id（也是座位 id）；默认 socket.id，教程里传固定值。 */
+  selfMemberId?: string;
+  /** online：真实对局；tutorial：剧本进行中（不出提示和小贴士）；practice：教程后的练习局（随时能看提示）。 */
+  mode?: "online" | "tutorial" | "practice";
+  /** 结算框里替代「再来一局」的按钮（练习局用）。 */
+  finalActions?: ReactNode;
+  /** 剧本还没讲到结算时先不弹结算框。 */
+  finalHidden?: boolean;
+  /** 报告当前点开的卡（"card:<id>" / "none"），教程据此把高亮挪到弹窗按钮上。 */
+  onSelection?: (selection: string) => void;
 }) {
   const game = room.game;
   const [selectedColors, setSelectedColors] = useState<GemColor[]>([]);
@@ -437,10 +466,17 @@ function GameBoard({
   const [returnPrompt, setReturnPrompt] = useState<ReturnPrompt | null>(null);
   const [returnSelection, setReturnSelection] = useState<TokenCounts>(zeroTokens);
   const [confirmPrompt, setConfirmPrompt] = useState<ConfirmPrompt | null>(null);
+  const [hint, setHint] = useState<{ version: number; hint: Hint } | null>(null);
   const turnSecondsLeft = useCountdown(room.turnRemainingMs, room);
   const [soundOn, toggleSound] = useSoundSetting();
-  const myTurnNow = game?.status === "active" && game.players[game.activePlayerIndex]?.id === socket.id;
-  useGameSounds(game, socket.id, myTurnNow, turnSecondsLeft);
+  const selfId = selfMemberId ?? socket.id ?? "";
+  const myTurnNow = game?.status === "active" && game.players[game.activePlayerIndex]?.id === selfId;
+  useGameSounds(game, selfId, myTurnNow, turnSecondsLeft);
+  // 局面版本：游戏状态里没有版本号，每收到一份新局面加一（提示、小贴士按它判断局面变没变）
+  const versionRef = useRef({ game, version: 0, previous: undefined as typeof game });
+  if (versionRef.current.game !== game) versionRef.current = { game, version: versionRef.current.version + 1, previous: versionRef.current.game };
+  const version = versionRef.current.version;
+  useEffect(() => onSelection?.(selectedCard ? `card:${selectedCard.card.id}` : "none"), [selectedCard?.card.id]);
   const scores = useMemo(
     () => new Map((game?.players ?? []).map((candidate) => [candidate.id, getPlayerScore(candidate)])),
     [game?.players],
@@ -453,13 +489,32 @@ function GameBoard({
     setReturnSelection({ ...zeroTokens });
   }, [game?.activePlayerIndex, game?.pendingNobleIds.length, game?.status]);
 
+  // 键盘 H：提示（只在能看提示时生效，见下面 canHint）
+  const hintKey = useRef<() => void>(() => undefined);
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+      if (event.key === "h" || event.key === "H") hintKey.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  const tips = useFirstTimeTips(
+    GAME_ID,
+    version,
+    () => (game ? detectTips(versionRef.current.previous, game, selfId) : []),
+    TIPS,
+    mode === "online" && room.members.some((member) => member.id === selfId),
+  );
+
   if (!game) {
     return <section className="game-board-error">对局状态暂时不可用，请重新进入房间。</section>;
   }
 
   // 观战的人没有座位：桌面按 watchId 那位玩家的座位摆（下方是他的东西），但什么都不能点。
-  const spectating = !room.members.some((member) => member.id === socket.id);
-  const player = game.players.find((candidate) => candidate.id === (spectating ? watchId : socket.id));
+  const spectating = !room.members.some((member) => member.id === selfId);
+  const player = game.players.find((candidate) => candidate.id === (spectating ? watchId : selfId));
   const activePlayer = game.players[game.activePlayerIndex];
   if (!player || !activePlayer) {
     return <section className="game-board-error">找不到当前玩家的对局席位。</section>;
@@ -511,6 +566,11 @@ function GameBoard({
 
   function takeTwo(color: GemColor) {
     if (actionLocked || currentGame.bank[color] < 4) return;
+    // 教程和练习局里不弹确认框（剧本里教练框会压暗别处）
+    if (mode !== "online") {
+      beginGemAction({ type: "takeGems", colors: [color, color] }, { [color]: 2 });
+      return;
+    }
     setConfirmPrompt({
       title: "拿 2 枚同色宝石？",
       detail: `拿取 2 枚${colorNames[color]}色宝石，本回合结束。`,
@@ -530,6 +590,10 @@ function GameBoard({
   function reserveDeck(level: 1 | 2 | 3) {
     if (actionLocked || currentPlayer.reservedCards.length >= 3 || currentGame.decks[level].length === 0) return;
     const gainsGold = currentGame.bank.gold > 0;
+    if (mode !== "online") {
+      beginGemAction({ type: "reserveCard", source: { kind: "deck", level } }, gainsGold ? { gold: 1 } : {});
+      return;
+    }
     const goldText = gainsGold ? "，并获得 1 枚金色宝石" : "；金色宝石已拿完，本次不获得";
     setConfirmPrompt({
       title: "暗抽预留一张土地？",
@@ -569,10 +633,21 @@ function GameBoard({
   }
 
   const rivals = game.players.filter((candidate) => candidate.id !== player.id);
-  const myAuto = !spectating && room.members.find((member) => member.id === socket.id)?.auto === true;
+  const deckAnchor = (level: 1 | 2 | 3) => `deck:${level}`;
+  const myAuto = !spectating && room.members.find((member) => member.id === selfId)?.auto === true;
   // 人机、托管、离线的人轮到时服务器不发倒计时
   const hasTimer = room.turnRemainingMs !== undefined;
   const turnText = !active ? "对局结束" : myAuto ? "人机托管中" : isMyTurn ? "轮到你行动" : `等待 ${activePlayer.name}`;
+
+  // 「提示」：只有自己和人机时才有（教程后的练习局，或者一个人加人机开的房间）
+  const botsOnly = room.members.length > 1 && room.members.every((member) => member.id === selfId || member.bot === true);
+  const canHint = !spectating && !myAuto && isMyTurn && !returnPrompt && (mode === "practice" || (mode === "online" && botsOnly));
+  const shownHint = hint && hint.version === version && canHint ? hint.hint : null;
+  hintKey.current = () => { if (canHint) toggleHint(); };
+  const toggleHint = () => {
+    setSelectedCard(null);
+    setHint((current) => (current && current.version === version ? null : { version, hint: hintFor(currentGame, selfId) }));
+  };
 
   return (
     <div className="game-screen">
@@ -594,8 +669,8 @@ function GameBoard({
         >{soundOn ? "🔊 音效" : "🔇 音效"}</button>
         {themeToggle}
         <GameRules />
-        <GameRoomMenu room={room} />
-        {room.members.find((member) => member.id === socket.id)?.isHost && (
+        {mode === "online" && <GameRoomMenu room={room} />}
+        {mode === "online" && room.members.find((member) => member.id === selfId)?.isHost && (
           <button type="button" className="gm-dissolve" onClick={onDissolve}>解散房间</button>
         )}
         {connection}
@@ -617,7 +692,7 @@ function GameBoard({
 
       <section className="gm-table" aria-label="公共区域">
         <div className="gm-table-inner">
-          <div className="gm-bank" aria-label="宝石供应">
+          <div className="gm-bank" aria-label="宝石供应" data-tutorial="bank">
             {TOKEN_COLORS.map((color) => {
               const isGem = color !== "gold";
               const selected = isGem && selectedColors.includes(color);
@@ -637,6 +712,7 @@ function GameBoard({
                     <button
                       type="button"
                       className="gm-take-two"
+                      data-tutorial={`take2:${color}`}
                       disabled={actionLocked || count < 4}
                       onClick={() => takeTwo(color)}
                       title={`拿 2 枚${colorNames[color]}色宝石（需剩余至少 4 枚）`}
@@ -661,8 +737,8 @@ function GameBoard({
           </div>
 
           <div className="gm-market">
-            <div className="gm-row gm-nobles" aria-label="贵族">
-              {game.noblesAvailable.map((noble) => <NobleTile noble={noble} key={noble.id} />)}
+            <div className="gm-row gm-nobles" aria-label="贵族" data-tutorial="nobles">
+              {game.noblesAvailable.map((noble) => <NobleTile noble={noble} key={noble.id} anchor={`noble:${noble.id}`} />)}
             </div>
             {([3, 2, 1] as const).map((level) => (
               <div className="gm-row" key={level} aria-label="土地">
@@ -671,6 +747,7 @@ function GameBoard({
                   className={`gm-card gm-card-back gm-back-l${level} gm-deck${game.decks[level].length === 0 ? " gm-zero" : ""}`}
                   disabled={actionLocked || player.reservedCards.length >= 3 || game.decks[level].length === 0}
                   onClick={() => reserveDeck(level)}
+                  data-tutorial={deckAnchor(level)}
                   title={`牌堆剩余 ${game.decks[level].length} 张；点击暗抽预留一张`}
                   aria-label={`暗抽预留这一排的土地，剩余 ${game.decks[level].length} 张`}
                 >
@@ -682,6 +759,7 @@ function GameBoard({
                     card={card}
                     affordable={active && canAfford(player, card)}
                     animated={active && canAfford(player, card)}
+                    anchor={`card:${card.id}`}
                     onClick={() => setSelectedCard({ card, source: { kind: "market", level } })}
                   />
                 ))}
@@ -693,27 +771,33 @@ function GameBoard({
           </div>
         </div>
 
-        {!active && <RematchPanel room={room} winnerNames={winnerNames} spectating={spectating} onRematch={onRematch} onLeave={onLeave} />}
+        {!active && !finalHidden && (
+          <RematchPanel room={room} winnerNames={winnerNames} spectating={spectating} myId={selfId} actions={finalActions} onRematch={onRematch} onLeave={onLeave} />
+        )}
       </section>
 
       <section className={`gm-me${isMyTurn ? " gm-me-turn" : ""}`} aria-label={spectating ? `${player.name}的物品` : "你的物品"}>
         <div className="gm-me-ident">
           <strong className="gm-me-name">{player.name}{spectating ? "（观战视角）" : ""}</strong>
-          <span className="gm-score gm-score-large" title={`${scores.get(player.id) ?? 0} 分`}>{scores.get(player.id) ?? 0}</span>
-          <span className="gm-gem-total" title="持有宝石总数 / 上限">{countTokens(player.gems)}/10</span>
+          <span className="gm-score gm-score-large" title={`${scores.get(player.id) ?? 0} 分`} data-tutorial={`score:${player.id}`}>{scores.get(player.id) ?? 0}</span>
+          <span className="gm-gem-total" title="持有宝石总数 / 上限" data-tutorial="gem-total">{countTokens(player.gems)}/10</span>
           {isMyTurn && hasTimer && <TurnTimer seconds={turnSecondsLeft} />}
+          {canHint && (
+            <button type="button" className={shownHint ? "quiet-button gm-hint on" : "quiet-button gm-hint"} onClick={toggleHint} title="提示（键盘 H）" data-tutorial="hint" data-hint-action={shownHint?.action ? JSON.stringify(shownHint.action) : undefined}>提示</button>
+          )}
           {myAuto && active && (
             <button type="button" className="quiet-button gm-auto-cancel" onClick={() => onAuto(false)} title="连续超时后人机在替你打；点这里自己来">取消托管</button>
           )}
         </div>
-        <Holdings player={player} size="large" />
-        <div className="gm-me-reserved" aria-label={`预留卡 ${player.reservedCards.length} / 3`}>
+        <Holdings player={player} size="large" anchor="me-holdings" />
+        <div className="gm-me-reserved" aria-label={`预留卡 ${player.reservedCards.length} / 3`} data-tutorial="me-reserved">
           {player.reservedCards.map((card) => card.id.startsWith("hidden-") ? <HiddenCard level={card.level} key={card.id} /> : (
             <CardFace
               key={card.id}
               card={card}
               affordable={active && canAfford(player, card)}
               animated={active && canAfford(player, card)}
+              anchor={`card:${card.id}`}
               onClick={() => setSelectedCard({ card, source: { kind: "reserved" } })}
             />
           ))}
@@ -793,6 +877,21 @@ function GameBoard({
           </section>
         </div>
       )}
+
+      {shownHint && (
+        <Coach
+          view={{
+            key: `hint-${version}`,
+            say: shownHint.say,
+            ...(shownHint.note ? { note: shownHint.note } : {}),
+            anchor: shownHint.anchor,
+            focus: false,
+            face: "think",
+            actions: <button className="quiet-button" type="button" onClick={() => setHint(null)}>知道了</button>,
+          }}
+        />
+      )}
+      {tips.tip && <TipToast tip={tips.tip} onClose={tips.dismiss} onNever={tips.never} />}
 
       {pendingNobles.length > 0 && active && isMyTurn && (
         <div className="gm-modal-backdrop">

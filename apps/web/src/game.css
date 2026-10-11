@@ -189,6 +189,15 @@
 .gm-tag-bot { padding: 0 4px; color: #d8e8ff; background: #2a62c0; }
 .gm-tag-auto { padding: 0 4px; color: #2a1c06; background: #e0a830; }
 .gm-auto-cancel { padding: 2px 8px; font-size: 12px; white-space: nowrap; }
+/* 「提示」按钮（练习局、只有自己和人机的房间） */
+.gm-hint { padding: 2px 8px; font-size: 12px; white-space: nowrap; }
+.gm-hint.on { color: var(--gold); }
+.gm-result-scores { color: var(--muted); font-size: 12px; }
+/* 教程侧栏：进度表代替聊天 */
+.gm-chat .tut-checklist { flex: 1; min-width: 0; overflow: auto; padding: 12px; background: var(--panel); }
+.gm-chat .tut-checklist h3 { margin: 0 0 6px; color: var(--text); font-size: 12px; font-weight: 400; }
+.gm-chat .tut-checklist ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.gm-tut-exit { padding: 2px 8px; font-size: 12px; white-space: nowrap; }
 .gm-score { --rim: #fff2b8; --shade: #7a5410; min-width: 28px; padding: 0 6px; color: #2a1c06; background: var(--gold); text-align: center; }
 .gm-rival-extras { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
 .gm-rival-extras .gm-card { height: 44px; }

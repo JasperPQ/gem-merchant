@@ -11,7 +11,7 @@
  * 卡牌和贵族的数据（data/cards.json、nobles.json）由调用方传进来，剧本只按 id 取用。
  * 剧本走完开一局新的练习局（随机），对手交给人机。
  */
-import { applyAction, createGame } from "./engine.js";
+import { applyAction, createGame, skipTurn } from "./engine.js";
 import {
 	CARD_LEVELS,
 	GEM_COLORS,
@@ -29,8 +29,8 @@ import {
 /** 咕噜嘎的表情。 */
 export type TutorialFace = "base" | "happy" | "surprised" | "think";
 
-/** 剧本里的一步：规则引擎的行动，或者「快进到中盘」。 */
-export type TutorialMove = GameAction | { readonly type: "FAST_FORWARD" };
+/** 剧本里的一步：规则引擎的行动，「快进到中盘」，或者练习局里没有能走的只好「跳过」。 */
+export type TutorialMove = GameAction | { readonly type: "FAST_FORWARD" } | { readonly type: "PASS" };
 
 interface StepBase {
 	readonly id: string;
@@ -325,6 +325,7 @@ export function tutorialApply(
 	cards: readonly DevelopmentCard[],
 ): GameState {
 	if (move.type === "FAST_FORWARD") return createLateGame(state, cards);
+	if (move.type === "PASS") return skipTurn(state);
 	return applyAction(state, playerId, move);
 }
 
@@ -343,7 +344,7 @@ export function sameCommand(a: TutorialMove, b: TutorialMove): boolean {
 		return a.source.kind === "deck" || (b.source.kind === "market" && a.source.cardId === b.source.cardId);
 	}
 	if (a.type === "chooseNoble" && b.type === "chooseNoble") return a.nobleId === b.nobleId;
-	return a.type === "FAST_FORWARD";
+	return a.type === b.type;
 }
 
 /**
