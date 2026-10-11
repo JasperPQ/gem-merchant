@@ -1,5 +1,21 @@
 export { applyAction, createGame, getPlayerBonuses, getPlayerScore, getRemainingCost, redactGameForViewer, skipTurn } from "./engine.js";
 export { botAdvice, botCommand, gemsShort, gemTakeOptions, legalActions, returnOptions, type BotAdvice } from "./bot.js";
+export {
+	anchorVisible,
+	createLateGame,
+	createPracticeGame,
+	createTutorialGame,
+	sameCommand,
+	tutorialApply,
+	TUTORIAL_FINAL_STEP,
+	TUTORIAL_RIVAL,
+	TUTORIAL_RIVAL_NAME,
+	TUTORIAL_SELF,
+	TUTORIAL_STEPS,
+	type TutorialFace,
+	type TutorialMove,
+	type TutorialStep,
+} from "./tutorial.js";
 export { DEFAULT_ROOM_ACCESS, TURN_SECONDS_OPTIONS } from "./roomTypes.js";
 export {
 	CARD_LEVELS,
