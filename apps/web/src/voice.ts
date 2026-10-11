@@ -1,3 +1,4 @@
+import { registerVoiceAudio, unregisterVoiceAudio } from "./gm-sound.js";
 import { useEffect, useRef, useState } from "react";
 import type { IceServerConfig, LobbyRoomSnapshot, VoiceSignal } from "@gem-merchant/game";
 import { socket } from "./socket.js";
@@ -82,6 +83,8 @@ export function useVoice(room: LobbyRoomSnapshot | null): VoiceControls {
   function createPeer(peerId: string, initiator: boolean): Peer {
     const pc = new RTCPeerConnection({ iceServers: iceServers.current, iceTransportPolicy: FORCE_RELAY ? "relay" : "all" });
     const audio = new Audio();
+    // 别人说话的开关和音量跟着 ♪ 面板的「语音」走
+    registerVoiceAudio(audio);
     audio.autoplay = true;
     const peer: Peer = { pc, audio, pendingCandidates: [], localAdded: false };
     peers.current.set(peerId, peer);
@@ -120,6 +123,7 @@ export function useVoice(room: LobbyRoomSnapshot | null): VoiceControls {
     const peer = peers.current.get(peerId);
     if (!peer) return;
     peer.pc.close();
+    unregisterVoiceAudio(peer.audio);
     peer.audio.srcObject = null;
     peers.current.delete(peerId);
     analysers.current.delete(peerId);

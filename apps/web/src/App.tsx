@@ -8,7 +8,7 @@ import RoomChat from "./RoomChat.js";
 import { roomRole, RoomSettingsPanel, SeatSwitch } from "./RoomExtras.js";
 import { socket } from "./socket.js";
 import { ThemeToggle, useTheme } from "./theme.js";
-import { MusicToggle, useBgm, type BgmTrack } from "./bgm.js";
+import { SoundToggle, useBgm, type BgmTrack } from "./gm-sound.js";
 import { TutorialInvite } from "./tutorial/Invite.js";
 import { readTutorial } from "./tutorial/storage.js";
 import "./tutorial/tutorial.css";
@@ -252,7 +252,7 @@ function App() {
         <TutorialMode
           name={name}
           brand={<Brand />}
-          themeToggle={<><ThemeToggle theme={theme} onToggle={toggleTheme} className="gm-sound-toggle" /><MusicToggle className="gm-sound-toggle" /></>}
+          themeToggle={<><ThemeToggle theme={theme} onToggle={toggleTheme} className="gm-sound-toggle" /><SoundToggle className="gm-sound-toggle" /></>}
           waitingRoom={room?.code}
           onExit={closeTutorial}
         />
@@ -281,7 +281,7 @@ function App() {
           watchId={watched}
           onWatch={setWatchId}
           onLeave={leaveRoom}
-          themeToggle={<><ThemeToggle theme={theme} onToggle={toggleTheme} className="gm-sound-toggle" /><MusicToggle className="gm-sound-toggle" /></>}
+          themeToggle={<><ThemeToggle theme={theme} onToggle={toggleTheme} className="gm-sound-toggle" /><SoundToggle className="gm-sound-toggle" /></>}
         />
         {confirmDialog}
       </main>
@@ -295,7 +295,7 @@ function App() {
           <Brand />
           <div className="topbar-right">
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
-            <MusicToggle />
+            <SoundToggle />
             <ConnectionStatus connected={connected} />
           </div>
         </header>
@@ -333,7 +333,7 @@ function App() {
         <Brand />
         <div className="topbar-right">
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
-          <MusicToggle />
+          <SoundToggle />
           <a className="center-link" href={CENTER_URL}>← 游戏中心</a>
           <ConnectionStatus connected={connected} />
         </div>
