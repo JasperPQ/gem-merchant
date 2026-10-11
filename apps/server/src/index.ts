@@ -6,6 +6,7 @@ import { pathToFileURL } from "node:url";
 import { Server } from "socket.io";
 import {
   applyAction,
+  botCommand,
   createGame,
   DEFAULT_ROOM_ACCESS,
   getPlayerScore,
@@ -53,8 +54,16 @@ interface RoomState {
   rematch?: { deadline: number; accepted: Set<string>; timer: ReturnType<typeof setTimeout> };
   /** 每回合行动时长（秒），房主在等待大厅设置。 */
   turnSeconds: TurnSeconds;
-  /** 当前回合的截止时间；到点自动跳过当前玩家。 */
-  turn?: { deadline: number; timer: ReturnType<typeof setTimeout> };
+  /** 当前回合的截止时间；到点自动跳过当前玩家。key 是回合号，选贵族仍算同一回合。 */
+  turn?: { deadline: number; timer: ReturnType<typeof setTimeout>; key: string };
+  /** 人机（人机座位、托管、离线的人）下一步的计时器；key 是步数，每次对局变化都换。 */
+  botTimer?: { timer: ReturnType<typeof setTimeout>; key: string };
+  /** 每位真人连续超时的次数，到 AUTO_AFTER_TIMEOUTS 次转托管。 */
+  timeouts: Map<string, number>;
+  /** 换人（或开新局）时加一：真人倒计时只在换人时重开。 */
+  turnNo: number;
+  /** 对局每变一次加一：人机按这个安排下一步。 */
+  stepNo: number;
 }
 
 const ROOM_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -68,6 +77,16 @@ const ADMIN_RETRY_DELAY_MS = 2_000;
 const VOICE_SIGNAL_MAX_LENGTH = 20_000;
 const MAX_SPECTATORS = 20;
 const DEFAULT_TURN_SECONDS: TurnSeconds = 60;
+/** 人机的名字，按顺序取第一个没人用的。 */
+const BOT_NAMES = ["咕噜一号", "咕噜二号", "咕噜三号"];
+/** 人机每步停顿的倍数；测试设 0，本地试玩可以设 0.3 加快。 */
+const BOT_DELAY_SCALE = Number(process.env.BOT_DELAY_SCALE ?? 1);
+/** 离线的人轮到时先等 3 秒（刷新页面、短暂断线来得及回来），再由人机代打，不算超时。 */
+const OFFLINE_GRACE_MS = 3_000;
+/** 真人连续超时几次转托管。 */
+const AUTO_AFTER_TIMEOUTS = 2;
+/** 测试用：覆盖每回合时长（毫秒）。 */
+const TURN_MS_OVERRIDE = process.env.TURN_MS ? Number(process.env.TURN_MS) : undefined;
 const TURN_CREDENTIAL_TTL_SECONDS = 24 * 60 * 60;
 const rooms = new Map<string, RoomState>();
 const socketRooms = new Map<string, string>();
@@ -193,6 +212,25 @@ function nameTaken(room: RoomState, name: string): boolean {
   return room.members.some((member) => member.name === name) || room.spectators.some((spectator) => spectator.name === name);
 }
 
+/** 真人玩家（不含人机）。房间里没有真人就关掉，房主也只交给真人。 */
+function humans(room: RoomState): LobbyMember[] {
+  return room.members.filter((member) => !member.bot);
+}
+
+/** 这个座位由人机行动：人机座位、托管、离线的人。 */
+function robotSeat(room: RoomState, playerId: string): boolean {
+  const member = room.members.find((candidate) => candidate.id === playerId);
+  return !member || member.bot === true || member.auto === true || !member.connected;
+}
+
+function setAuto(room: RoomState, playerId: string, enabled: boolean): void {
+  room.members = room.members.map((member) => {
+    if (member.id !== playerId) return member;
+    const { auto: _auto, ...rest } = member;
+    return enabled ? { ...rest, auto: true } : rest;
+  });
+}
+
 function roomSummaries(): PublicRoomSummary[] {
   const order = { playing: 0, waiting: 1, finished: 2 } as const;
   return [...rooms.values()]
@@ -213,6 +251,7 @@ function roomSummaries(): PublicRoomSummary[] {
             name: member.name,
             isHost: member.isHost,
             connected: member.connected,
+            ...(member.bot ? { bot: true } : {}),
             ...(player ? {
               score: getPlayerScore(player),
               isActive: player.id === activeId,
@@ -290,18 +329,20 @@ function removeWaitingMember(socketId: string): void {
     room.members = room.members.map((member) =>
       member.id === socketId ? { ...member, connected: false } : member,
     );
-    if (room.members.every((member) => !member.connected)) scheduleAbandonedRoomClose(room);
+    if (humans(room).every((member) => !member.connected)) scheduleAbandonedRoomClose(room);
+    // 轮到他的话，等 OFFLINE_GRACE_MS 后由人机代打
+    updateTurnTimer(room);
     emitRoomUpdate(room);
     return;
   }
 
   room.members = room.members.filter((member) => member.id !== socketId);
-  if (room.members.length === 0) {
+  if (humans(room).length === 0) {
     deleteRoom(room, "玩家都离开了，房间已关闭。");
     return;
   }
   if (room.ownerId === socketId) {
-    room.ownerId = room.members[0]!.id;
+    room.ownerId = humans(room)[0]!.id;
     room.members = room.members.map((member) => ({
       ...member,
       isHost: member.id === room.ownerId,
@@ -314,7 +355,7 @@ function removeWaitingMember(socketId: string): void {
 function scheduleAbandonedRoomClose(room: RoomState): void {
   clearTimeout(room.abandonTimer);
   room.abandonTimer = setTimeout(() => {
-    if (rooms.get(room.code) !== room || room.members.some((member) => member.connected)) return;
+    if (rooms.get(room.code) !== room || humans(room).some((member) => member.connected)) return;
     deleteRoom(room, "玩家都离线了，房间已关闭。");
   }, ROOM_ABANDON_MS);
   room.abandonTimer.unref();
@@ -334,7 +375,7 @@ function deleteRoom(room: RoomState, reason = "房间已关闭。"): void {
   for (const spectator of room.spectators) closeMemberConnection(room, spectator.id, reason);
   room.spectators = [];
   clearTimeout(room.abandonTimer);
-  clearTurnTimer(room);
+  clearGameTimers(room);
   clearTimeout(room.rematch?.timer);
   for (const member of room.members) socketRooms.delete(member.id);
   rooms.delete(room.code);
@@ -351,11 +392,11 @@ function removeMembers(room: RoomState, memberIds: string[], reason: string): bo
   for (const memberId of memberIds) closeMemberConnection(room, memberId, reason);
   for (const memberId of memberIds) room.voice.delete(memberId);
   room.members = room.members.filter((member) => !memberIds.includes(member.id));
-  if (room.members.length === 0) {
+  if (humans(room).length === 0) {
     deleteRoom(room);
     return false;
   }
-  if (!room.members.some((member) => member.id === room.ownerId)) room.ownerId = room.members[0]!.id;
+  if (!room.members.some((member) => member.id === room.ownerId)) room.ownerId = humans(room)[0]!.id;
   room.members = room.members.map((member) => ({ ...member, isHost: member.id === room.ownerId }));
   return true;
 }
@@ -369,7 +410,7 @@ function returnToWaiting(room: RoomState, kickedIds: string[], reason: string): 
   const offlineIds = room.members.filter((member) => !member.connected && !kickedIds.includes(member.id)).map((member) => member.id);
   if (!removeMembers(room, [...kickedIds, ...offlineIds], reason)) return;
   room.status = "waiting";
-  clearTurnTimer(room);
+  clearGameTimers(room);
   delete room.game;
   emitRoomUpdate(room);
 }
@@ -379,32 +420,120 @@ function clearTurnTimer(room: RoomState): void {
   delete room.turn;
 }
 
-/** 当前玩家开始新的回合：限时 turnSeconds 秒，超时跳过。 */
-function startTurnTimer(room: RoomState): void {
-  clearTurnTimer(room);
-  if (room.game?.status !== "active") return;
-  const timer = setTimeout(() => expireTurn(room), room.turnSeconds * 1000);
-  timer.unref();
-  room.turn = { deadline: Date.now() + room.turnSeconds * 1000, timer };
+function clearBotTimer(room: RoomState): void {
+  clearTimeout(room.botTimer?.timer);
+  delete room.botTimer;
 }
 
-function expireTurn(room: RoomState): void {
-  if (rooms.get(room.code) !== room || room.game?.status !== "active") return;
-  room.game = skipTurn(room.game);
+function clearGameTimers(room: RoomState): void {
+  clearTurnTimer(room);
+  clearBotTimer(room);
+}
+
+/**
+ * 每次对局变化、有人掉线 / 回来、托管开关后重新安排：
+ * - 真人：每回合限时 turnSeconds 秒（选贵族仍算同一回合，不重新计时），超时跳过；
+ * - 人机（人机座位、托管、离线的人）：停顿一下（见 botDelay）再行动，没有倒计时。
+ */
+function updateTurnTimer(room: RoomState): void {
+  const game = room.game;
+  if (room.status !== "playing" || !game || game.status !== "active") {
+    clearGameTimers(room);
+    return;
+  }
+  const playerId = game.players[game.activePlayerIndex]!.id;
+  if (robotSeat(room, playerId)) {
+    clearTurnTimer(room);
+    const key = String(room.stepNo);
+    if (room.botTimer?.key === key) return;
+    clearBotTimer(room);
+    const timer = setTimeout(() => runBot(room, key), botDelay(room, game, playerId));
+    timer.unref();
+    room.botTimer = { timer, key };
+    return;
+  }
+  clearBotTimer(room);
+  const key = String(room.turnNo);
+  if (room.turn?.key === key) return;
+  clearTurnTimer(room);
+  const ms = TURN_MS_OVERRIDE ?? room.turnSeconds * 1000;
+  const timer = setTimeout(() => expireTurn(room), ms);
+  timer.unref();
+  room.turn = { deadline: Date.now() + ms, timer, key };
+}
+
+/** 人机每一步前停多久：让大家看清上一步拿了什么、买了什么。 */
+function botDelay(room: RoomState, game: GameState, playerId: string): number {
+  const jitter = 500 * Math.random();
+  // 选贵族是同一回合的第二步，停短一点
+  let ms = game.pendingNobleIds.length > 0 ? 700 + jitter : 1300 + jitter;
+  const member = room.members.find((candidate) => candidate.id === playerId);
+  if (member && !member.bot && !member.connected) ms = Math.max(ms, OFFLINE_GRACE_MS);
+  return ms * BOT_DELAY_SCALE;
+}
+
+function runBot(room: RoomState, key: string): void {
+  if (room.botTimer?.key === key) delete room.botTimer;
+  const game = room.game;
+  if (rooms.get(room.code) !== room || !game || game.status !== "active" || String(room.stepNo) !== key) return;
+  const playerId = game.players[game.activePlayerIndex]!.id;
+  if (!robotSeat(room, playerId)) return;
+  let next: GameState;
+  try {
+    // 人机只看得到自己座位能看到的东西
+    const action = botCommand(redactGameForViewer(game, playerId), playerId);
+    next = action ? applyAction(game, playerId, action) : skipTurn(game);
+  } catch (error) {
+    console.error("人机行动失败，按跳过处理", error);
+    next = skipTurn(game);
+  }
+  setGame(room, next);
   afterGameChange(room);
   emitRoomUpdate(room);
 }
 
-/** 对局状态变化后：结束则清空聊天并发起继续投票，否则为下一位玩家重新计时。 */
-function afterGameChange(room: RoomState, previousActiveIndex?: number): void {
+/** 换上新的对局状态，记下步数和回合号。 */
+function setGame(room: RoomState, next: GameState): void {
+  const previous = room.game;
+  room.game = next;
+  room.stepNo += 1;
+  if (!previous || previous.activePlayerIndex !== next.activePlayerIndex) room.turnNo += 1;
+}
+
+function expireTurn(room: RoomState): void {
+  if (rooms.get(room.code) !== room || room.game?.status !== "active") return;
+  const playerId = room.game.players[room.game.activePlayerIndex]!.id;
+  const count = (room.timeouts.get(playerId) ?? 0) + 1;
+  room.timeouts.set(playerId, count);
+  if (count >= AUTO_AFTER_TIMEOUTS) setAuto(room, playerId, true);
+  setGame(room, skipTurn(room.game));
+  afterGameChange(room);
+  emitRoomUpdate(room);
+}
+
+/** 对局状态变化后：结束则清空聊天并发起继续投票，否则安排下一步的计时。 */
+function afterGameChange(room: RoomState): void {
   if (room.game?.status === "finished") {
-    clearTurnTimer(room);
+    clearGameTimers(room);
     room.chat = [];
     startRematchVote(room);
     return;
   }
-  // 选贵族仍属于同一回合，不重新计时。
-  if (room.game?.activePlayerIndex !== previousActiveIndex) startTurnTimer(room);
+  updateTurnTimer(room);
+}
+
+/** 开新的一局：托管和超时次数都清零。 */
+function newGame(room: RoomState): void {
+  for (const member of room.members) setAuto(room, member.id, false);
+  room.timeouts.clear();
+  clearGameTimers(room);
+  room.game = createGame(
+    room.members.map((member) => ({ id: member.id, name: member.name })),
+    cardsFile.cards,
+    noblesFile.nobles,
+  );
+  room.stepNo += 1;
+  room.turnNo += 1;
 }
 
 /** 整轮结束：所有人需在 REMATCH_TIMEOUT_MS 内确认是否继续。 */
@@ -417,7 +546,9 @@ function startRematchVote(room: RoomState): void {
     returnToWaiting(room, pending, "没有在 1 分钟内确认继续，已被移出房间。");
   }, REMATCH_TIMEOUT_MS);
   timer.unref();
-  room.rematch = { deadline: Date.now() + REMATCH_TIMEOUT_MS, accepted: new Set(), timer };
+  // 人机总是同意再来一局
+  const bots = room.members.filter((member) => member.bot).map((member) => member.id);
+  room.rematch = { deadline: Date.now() + REMATCH_TIMEOUT_MS, accepted: new Set(bots), timer };
 }
 
 /** 未配置 ADMIN_TOKEN 时管理功能关闭。 */
@@ -472,6 +603,9 @@ function reassignMember(room: RoomState, previousId: string, nextId: string): vo
     member.id === previousId ? { ...member, id: nextId, connected: true } : member,
   );
   room.ownerId = swap(room.ownerId);
+  const timeouts = room.timeouts.get(previousId);
+  room.timeouts.delete(previousId);
+  if (timeouts !== undefined) room.timeouts.set(nextId, timeouts);
   room.chat = room.chat.map((entry) => ({ ...entry, senderId: swap(entry.senderId) }));
   if (room.rematch) room.rematch.accepted = new Set([...room.rematch.accepted].map(swap));
   if (room.game) {
@@ -550,6 +684,9 @@ io.on("connection", (socket) => {
       chat: [],
       voice: new Map(),
       turnSeconds: DEFAULT_TURN_SECONDS,
+      timeouts: new Map(),
+      turnNo: 0,
+      stepNo: 0,
     };
     rooms.set(code, room);
     socketRooms.set(socket.id, code);
@@ -634,6 +771,8 @@ io.on("connection", (socket) => {
       reassignMember(room, seat.id, socket.id);
       socketRooms.set(socket.id, code);
       void socket.join(code);
+      // 座位交还给本人：轮到他的话停掉人机，重新给他计时
+      updateTurnTimer(room);
       ack({ ok: true, data: snapshot(room, socket.id) });
       emitRoomUpdate(room);
       return;
@@ -758,18 +897,14 @@ io.on("connection", (socket) => {
       return;
     }
     if (room.members.length < 2) {
-      ack({ ok: false, error: "至少需要 2 位玩家才能开始。" });
+      ack({ ok: false, error: "至少需要 2 位玩家才能开始（可以点空座位上的「加人机」）。" });
       return;
     }
 
     try {
-      room.game = createGame(
-        room.members.map((member) => ({ id: member.id, name: member.name })),
-        cardsFile.cards,
-        noblesFile.nobles,
-      );
+      newGame(room);
       room.status = "playing";
-      startTurnTimer(room);
+      updateTurnTimer(room);
       const roomSnapshot = snapshot(room, socket.id);
       ack({ ok: true, data: roomSnapshot });
       emitRoomUpdate(room);
@@ -807,9 +942,12 @@ io.on("connection", (socket) => {
     }
 
     try {
-      const previousActiveIndex = room.game.activePlayerIndex;
-      room.game = applyAction(room.game, socket.id, action);
-      afterGameChange(room, previousActiveIndex);
+      const next = applyAction(room.game, socket.id, action);
+      setGame(room, next);
+      // 自己动了一下：超时次数清零，托管也取消
+      room.timeouts.delete(socket.id);
+      setAuto(room, socket.id, false);
+      afterGameChange(room);
       const roomSnapshot = snapshot(room, socket.id);
       ack({ ok: true, data: roomSnapshot });
       emitRoomUpdate(room);
@@ -834,12 +972,8 @@ io.on("connection", (socket) => {
     if (room.members.every((member) => room.rematch!.accepted.has(member.id))) {
       clearTimeout(room.rematch.timer);
       delete room.rematch;
-      room.game = createGame(
-        room.members.map((member) => ({ id: member.id, name: member.name })),
-        cardsFile.cards,
-        noblesFile.nobles,
-      );
-      startTurnTimer(room);
+      newGame(room);
+      updateTurnTimer(room);
     }
     emitRoomUpdate(room);
   });
@@ -887,6 +1021,44 @@ io.on("connection", (socket) => {
       return;
     }
     removeMembers(room, [memberId], "你已被房主移出房间。");
+    ack({ ok: true, data: undefined });
+    emitRoomUpdate(room);
+  });
+
+  socket.on("room:add-bot", (ack) => {
+    const room = findRoomForSocket(socket.id);
+    if (!room || room.ownerId !== socket.id) {
+      ack({ ok: false, error: "只有房主可以加人机。" });
+      return;
+    }
+    if (room.status !== "waiting") {
+      ack({ ok: false, error: "对局开始后不能再加人机。" });
+      return;
+    }
+    if (room.members.length >= room.capacity) {
+      ack({ ok: false, error: "座位已经满了。" });
+      return;
+    }
+    const name = BOT_NAMES.find((candidate) => !nameTaken(room, candidate));
+    if (!name) {
+      ack({ ok: false, error: "人机已经加满了。" });
+      return;
+    }
+    room.members.push({ id: `bot-${randomUUID()}`, name, isHost: false, connected: true, bot: true });
+    ack({ ok: true, data: undefined });
+    emitRoomUpdate(room);
+  });
+
+  socket.on("room:auto", (enabled, ack) => {
+    const room = findRoomForSocket(socket.id);
+    const member = room?.members.find((candidate) => candidate.id === socket.id);
+    if (!room || !member || member.bot || room.status !== "playing" || !room.game) {
+      ack({ ok: false, error: "现在没有你参加的对局。" });
+      return;
+    }
+    room.timeouts.delete(member.id);
+    setAuto(room, member.id, enabled === true);
+    updateTurnTimer(room);
     ack({ ok: true, data: undefined });
     emitRoomUpdate(room);
   });
@@ -1022,7 +1194,7 @@ export const testHooks = {
     const room = rooms.get(code);
     if (!room?.game) throw new Error("no game");
     room.game = { ...room.game, status: "finished" };
-    clearTurnTimer(room);
+    clearGameTimers(room);
     startRematchVote(room);
     emitRoomUpdate(room);
   },
