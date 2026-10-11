@@ -35,3 +35,9 @@ pm2 按仓库根目录的 `ecosystem.config.cjs` 直接启动一个 `node --impo
 - 网页：共用教练层 `apps/web/src/tutorial/`（从欲罢不能复制，没改）；`TutorialMode.tsx` 拼假房间、接剧本和人机；`tutorialGame.ts` 是「提示」的说法和小贴士。GameBoard 多了 `selfMemberId` / `mode` / `finalActions` / `finalHidden` / `onSelection`；教程和练习局里「+2」和暗抽预留不弹确认框。
 - 「提示」（键盘 H）只在练习局、或者只有自己和人机的房间出现：人机从你的位置算一步，配一句理由，高亮要点的东西。
 - 走查脚本：`~/projects/qa-reports/tools/tut-gem.mjs <输出目录> <flow|skip|waiting|room> [1440|1920|1024|390] [night|day]`（先 `npm run dev`）。
+
+## 背景音乐
+
+进了房间（等候房间、对局、观战）和新手教程里循环放 `apps/web/public/bgm/gem-merchant.mp3`，首页和房间列表不放。曲子是他用 Suno 做的，原文件在桌面 `bgm v1/宝石商人.mp3`（2026-10-11 接入）。播放器是 `apps/web/src/bgm.tsx`（大厅和各游戏是同一份文件，改了要同步到所有仓库）：一个页面只有一个播放器，从等候房间进牌桌不会从头放；循环处交叉淡化；切到别的标签页时暂停。顶栏的 ♪ 按钮能开关、调音量，设置全站共用（localStorage `gm-music`、`gm-music-volume`，默认开、音量 60）。浏览器要求先点过页面才能出声，从首页点进房间正好满足。
+
+换曲子：把新文件放进 `apps/web/public/bgm/`，用 `~/miniconda3/envs/quant/bin/python -I ~/projects/qa-reports/tools/bgm-analyze.py <文件>` 量出 gain / start / end，改 `App.tsx` 里的 `BGM`。本地检查：`URL=http://localhost:<网页端口>/ node ~/projects/qa-reports/tools/bgm-check.mjs`（进房间、开局、离开、开关、顶栏是否被挤成两行）。
