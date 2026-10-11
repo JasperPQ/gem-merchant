@@ -616,3 +616,4 @@ button.gm-card:hover:not(:disabled) { transform: translateY(calc(var(--px) * -2)
   .gm-result { width: min(92%, 340px); padding: 16px 14px; }
   .gm-result :is(.primary-button, .quiet-button) { white-space: nowrap; }
 }
+.game-shell .tut-link { white-space: nowrap; }

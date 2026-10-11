@@ -34,7 +34,7 @@ const COLOR_NAMES: Record<TokenColor, string> = {
 	black: "黑",
 	gold: "金",
 };
-const LEVEL_NAMES: Record<CardLevel, string> = { 1: "第一排", 2: "第二排", 3: "第三排" };
+const LEVEL_NAMES: Record<CardLevel, string> = { 1: "下排", 2: "中排", 3: "上排" };
 
 export interface BotAdvice {
 	action: GameAction;
