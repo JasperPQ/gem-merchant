@@ -18,7 +18,8 @@ import {
 import GameRules from "./GameRules.js";
 import { GameRoomMenu, SpectateBar } from "./RoomExtras.js";
 import { socket } from "./socket.js";
-import { useGameSounds, useSoundSetting } from "./sound.js";
+import { useGameSfx, gemSfx } from "./game-sfx.js";
+import { sfx, useSfxCountdown } from "./gm-sound.js";
 import { Coach, TipToast } from "./tutorial/Coach.js";
 import { useFirstTimeTips } from "./tutorial/tips.js";
 import { detectTips, GAME_ID, hintFor, TIPS, type Hint } from "./tutorialGame.js";
@@ -468,10 +469,10 @@ function GameBoard({
   const [confirmPrompt, setConfirmPrompt] = useState<ConfirmPrompt | null>(null);
   const [hint, setHint] = useState<{ version: number; hint: Hint } | null>(null);
   const turnSecondsLeft = useCountdown(room.turnRemainingMs, room);
-  const [soundOn, toggleSound] = useSoundSetting();
   const selfId = selfMemberId ?? socket.id ?? "";
   const myTurnNow = game?.status === "active" && game.players[game.activePlayerIndex]?.id === selfId;
-  useGameSounds(game, selfId, myTurnNow, turnSecondsLeft);
+  useGameSfx(game, selfId);
+  useSfxCountdown(myTurnNow && room.turnRemainingMs !== undefined, turnSecondsLeft);
   // 局面版本：游戏状态里没有版本号，每收到一份新局面加一（提示、小贴士按它判断局面变没变）
   const versionRef = useRef({ game, version: 0, previous: undefined as typeof game });
   if (versionRef.current.game !== game) versionRef.current = { game, version: versionRef.current.version + 1, previous: versionRef.current.game };
@@ -550,7 +551,10 @@ function GameBoard({
   }
 
   function toggleGem(color: GemColor) {
-    if (actionLocked || currentGame.bank[color] === 0) return;
+    if (actionLocked || currentGame.bank[color] === 0) return sfx.deny();
+    const on = !selectedColors.includes(color);
+    if (on && selectedColors.length >= 3) return sfx.deny();
+    gemSfx.pick(on);
     setSelectedColors((current) => current.includes(color)
       ? current.filter((selected) => selected !== color)
       : current.length < 3 ? [...current, color] : current);
@@ -660,13 +664,6 @@ function GameBoard({
         <span className="gm-feedback" role="status">
           {error ? <span className="gm-feedback-error">{error}</span> : notice}
         </span>
-        <button
-          type="button"
-          className={`gm-sound-toggle${soundOn ? "" : " off"}`}
-          onClick={toggleSound}
-          aria-pressed={soundOn}
-          title={soundOn ? "关闭游戏音效" : "开启游戏音效"}
-        >{soundOn ? "🔊 音效" : "🔇 音效"}</button>
         {themeToggle}
         <GameRules />
         {mode === "online" && <GameRoomMenu room={room} />}
@@ -704,6 +701,7 @@ function GameBoard({
                     className={`gm-token gm-bank-token gm-c-${color}${selected ? " gm-selected" : ""}${count === 0 ? " gm-zero" : ""}`}
                     disabled={!isGem || actionLocked || count === 0}
                     onClick={() => isGem && toggleGem(color)}
+                    data-sfx="none"
                     title={isGem ? `${colorNames[color]}色宝石，剩余 ${count} 枚；点击选择` : `金色万能宝石，剩余 ${count} 枚（预留卡牌时获得）`}
                     aria-label={`${colorNames[color]}色宝石，剩余 ${count} 枚`}
                     aria-pressed={isGem ? selected : undefined}

@@ -152,7 +152,6 @@
 .game-shell .connection-status { color: var(--muted); font-size: 12px; gap: 6px; }
 .game-shell .connection-dot { width: 6px; height: 6px; border-radius: 0; box-shadow: none; }
 .game-shell .connection-status.online .connection-dot { background: var(--ok); box-shadow: none; }
-.gm-sound-toggle.off { color: var(--muted); }
 
 /* 规则面板 */
 .gm-topbar .game-rules { position: relative; margin: 0; }
