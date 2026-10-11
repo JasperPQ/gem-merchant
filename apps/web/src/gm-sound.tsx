@@ -654,6 +654,12 @@ export const sfx = {
 
 export type SfxName = keyof typeof sfx;
 
+/**
+ * 底层合成：游戏想要自己的招牌声音时（比如宝石碰撞、骆驼铃铛）在 game-sfx.ts 里用它组合。
+ * 都走「音效」那一路音量；mine 的轻重用 synth.level(mine) 乘到 volume 上。
+ */
+export const synth = { tone, noise, level: lv, jitter };
+
 /** 自己行动的最后 5 秒，每秒响一次（secondsLeft 是整数秒的倒计时）。 */
 export function useSfxCountdown(isMyTurn: boolean, secondsLeft: number | null | undefined) {
   const last = useRef<number | null>(null);
