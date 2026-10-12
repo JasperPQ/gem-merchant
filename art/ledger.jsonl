@@ -405,3 +405,9 @@
 {"time": "2026-10-06 17:14:23", "name": "N-11-e0", "endpoint": "/edit-image", "usage": {"type": "usd", "usd": 0.006209221786922878}, "seconds": 23.6, "status": "completed"}
 {"time": "2026-10-06 17:14:36", "name": "N-11-e1", "endpoint": "/edit-image", "usage": {"type": "usd", "usd": 0.00579114145702786}, "seconds": 13.2, "status": "completed"}
 {"time": "2026-10-06 17:17:08", "name": "N-11", "endpoint": "/animate-with-text-v3", "usage": {"type": "usd", "usd": 0.021710170805454253}, "seconds": 80.1, "status": "completed"}
+{"time": "2026-10-11 22:09:04", "name": "night-s1301", "endpoint": "/create-image-pixen", "usage": {"type": "generations", "generations": 1.0}, "seconds": 46.8}
+{"time": "2026-10-11 22:09:23", "name": "night-s1302", "endpoint": "/create-image-pixen", "usage": {"type": "generations", "generations": 1.0}, "seconds": 65.6}
+{"time": "2026-10-11 22:09:45", "name": "day-s1302", "endpoint": "/create-image-pixen", "usage": {"type": "generations", "generations": 1.0}, "seconds": 48.4}
+{"time": "2026-10-11 22:09:47", "name": "day-s1301", "endpoint": "/create-image-pixen", "usage": {"type": "generations", "generations": 1.0}, "seconds": 53.6}
+{"time": "2026-10-11 22:09:56", "name": "night-s1303", "endpoint": "/create-image-pixen", "usage": {"type": "generations", "generations": 1.0}, "seconds": 70.4}
+{"time": "2026-10-11 22:10:01", "name": "day-s1303", "endpoint": "/create-image-pixen", "usage": {"type": "generations", "generations": 1.0}, "seconds": 58.9}

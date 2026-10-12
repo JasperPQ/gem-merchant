@@ -1,7 +1,12 @@
-"""PixelLab API 客户端：限速自动重试、后台任务轮询、花费记账和预算上限。
+"""PixelLab API 客户端（流水线标准版）：全站排队、限速自动重试、后台任务轮询、花费记账和预算上限。
+
+用法：把这个文件复制到游戏仓库的 art/pixellab.py（开工样张阶段复制到 ~/projects/pipeline/games/<id>/assets/work/），
+不要从老游戏复制，老游戏的副本没有排队。标准版在 ~/projects/pipeline/bin/pixellab.py。
 
 密钥从 ~/.config/pixellab/api_key 读取（或环境变量 PIXELLAB_API_KEY），不进仓库。
-每次调用都记进 art/ledger.jsonl；累计美元花费超过 BUDGET_USD 就拒绝继续调用。
+每次调用都记进本文件所在目录的 ledger.jsonl；累计美元花费超过 BUDGET_USD 就拒绝继续调用。
+全站排队：一个 PixelLab 账号同一时间只能跑一个任务，所有游戏的请求都先经过 ~/projects/pipeline/bin/pxqueue.py 排队，
+轮到了才发（见那个文件的说明）。开工样张这类急活用环境变量 PIXELLAB_PRIORITY=0 插队；看排队：python3 ~/projects/pipeline/bin/pxqueue.py status。
 """
 from __future__ import annotations
 
@@ -11,14 +16,23 @@ import os
 import pathlib
 import threading
 import time
+import contextlib
+import sys
 import urllib.error
 import urllib.request
+
+sys.path.insert(0, str(pathlib.Path.home() / "projects" / "pipeline" / "bin"))
+try:
+    import pxqueue  # 全站 PixelLab 排队
+except ImportError:  # 没有流水线目录的机器上照常能用，只是不排队
+    pxqueue = None
+    print("[PixelLab] 没找到 ~/projects/pipeline/bin/pxqueue.py，这次不排队", file=sys.stderr)
 
 API = "https://api.pixellab.ai/v2"
 ART = pathlib.Path(__file__).resolve().parent
 LEDGER = ART / "ledger.jsonl"
-# 用户充值 15 美元；留 1 美元余量，避免最后一次调用透支。
-BUDGET_USD = float(os.environ.get("PIXELLAB_BUDGET_USD", "14"))
+# 每个游戏单独记账。上限用环境变量 PIXELLAB_BUDGET_USD 设，默认 $8；他说过不要怕花钱，但要记账、汇报。
+BUDGET_USD = float(os.environ.get("PIXELLAB_BUDGET_USD", "8"))
 
 
 def _key() -> str:
@@ -62,18 +76,21 @@ def _request(method: str, path: str, body: dict | None = None) -> dict:
         method=method,
     )
     wait = 15
-    for attempt in range(RETRY_ATTEMPTS):
-        try:
-            with urllib.request.urlopen(request, timeout=240) as response:
-                return json.load(response)
-        except urllib.error.HTTPError as error:
-            detail = error.read()[:400]
-            if error.code != 429 or attempt == RETRY_ATTEMPTS - 1:
-                raise RuntimeError(f"HTTP {error.code} {path}: {detail!r}") from error
-            # 有频率限制：按 Retry-After（没有就指数退避）等一会儿再试
-            delay = RETRY_DELAY or int(error.headers.get("Retry-After") or wait)
-            time.sleep(delay)
-            wait = min(wait * 2, 120)
+    # 整个请求（包括 429 重试）都在全站排队里占着位置；提交任务前可能要等别的游戏用完
+    queue = pxqueue.turn(method, path, ART) if pxqueue else contextlib.nullcontext()
+    with queue:
+        for attempt in range(RETRY_ATTEMPTS):
+            try:
+                with urllib.request.urlopen(request, timeout=240) as response:
+                    return json.load(response)
+            except urllib.error.HTTPError as error:
+                detail = error.read()[:400]
+                if error.code != 429 or attempt == RETRY_ATTEMPTS - 1:
+                    raise RuntimeError(f"HTTP {error.code} {path}: {detail!r}") from error
+                # 还是撞上了频率限制（比如有没走排队的老脚本在跑）：按 Retry-After（没有就指数退避）等一会儿再试
+                delay = RETRY_DELAY or int(error.headers.get("Retry-After") or wait)
+                time.sleep(delay)
+                wait = min(wait * 2, 120)
     raise RuntimeError("unreachable")
 
 
@@ -161,3 +178,89 @@ def animate(name: str, body: dict, out_dir: pathlib.Path, endpoint: str = "/anim
     meta |= {"endpoint": endpoint, "usage": usage, "frames": len(paths)}
     (out_dir / f"{name}.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2))
     return paths
+
+
+DIRECTIONS = ["south", "south-east", "east", "north-east", "north", "north-west", "west", "south-west"]
+
+
+def _download(url: str) -> bytes:
+    """下载 PixelLab 返回的图片地址（预签名的图床链接）。不带 API key；
+    图床会拒绝 Python 默认的 User-Agent，所以换一个普通的。"""
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 seasalt-art"})
+    with urllib.request.urlopen(request, timeout=120) as response:
+        return response.read()
+
+
+def character(character_id: str) -> dict:
+    return _request("GET", f"/characters/{character_id}")
+
+
+def create_character(name: str, body: dict, out_dir: pathlib.Path, endpoint: str = "/create-character-v3") -> dict[str, pathlib.Path]:
+    """8 方向角色：提交后轮询，下载每个方向的图存成 {name}-{方向}.png，返回 {方向: 路径}。
+    角色 id 写进 {name}.json，后面做动画要用。"""
+    _check_budget()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    started = time.time()
+    job = _request("POST", endpoint, body)
+    result = poll(job["background_job_id"], timeout=900)
+    usage = result.get("usage") or job.get("usage")
+    _record({"time": time.strftime("%Y-%m-%d %H:%M:%S"), "name": name, "endpoint": endpoint, "usage": usage,
+             "seconds": round(time.time() - started, 1), "status": result["status"], "character_id": job.get("character_id")})
+    if result["status"] != "completed":
+        raise RuntimeError(f"{name} 失败：{json.dumps(result.get('last_response'))[:300]}")
+    paths = download_rotations(name, job["character_id"], out_dir)
+    meta = {k: v for k, v in body.items() if k not in ("reference_image", "color_image", "directions")}
+    meta |= {"endpoint": endpoint, "usage": usage, "character_id": job.get("character_id"), "seconds": round(time.time() - started, 1)}
+    (out_dir / f"{name}.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2))
+    return paths
+
+
+def download_rotations(name: str, character_id: str, out_dir: pathlib.Path) -> dict[str, pathlib.Path]:
+    """把角色 8 个方向的图存成 {name}-{方向}.png。"""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    detail = character(character_id)
+    for _ in range(30):
+        if detail.get("rotation_urls"):
+            break
+        time.sleep(4)
+        detail = character(character_id)
+    paths: dict[str, pathlib.Path] = {}
+    for direction, url in (detail.get("rotation_urls") or {}).items():
+        path = out_dir / f"{name}-{direction}.png"
+        path.write_bytes(_download(url))
+        paths[direction] = path
+    return paths
+
+
+def animate_character(name: str, body: dict, out_dir: pathlib.Path) -> dict[str, list[pathlib.Path]]:
+    """给已有角色做动画（/characters/animations，每个方向一个后台任务）。
+    帧存成 {name}-{方向}-{帧号}.png，返回 {方向: [帧路径]}。"""
+    _check_budget()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    started = time.time()
+    job = _request("POST", "/characters/animations", body)
+    job_ids = job.get("background_job_ids") or ([job["background_job_id"]] if job.get("background_job_id") else [])
+    results: dict[str, list[pathlib.Path]] = {}
+    total_usd = 0.0
+    labels = job.get("directions") or body.get("directions") or ["south"]
+    for job_id, direction in zip(job_ids, labels):
+        result = poll(job_id, timeout=900)
+        usage = result.get("usage") or {}
+        if usage.get("type") == "usd":
+            total_usd += usage.get("usd") or 0.0
+        if result["status"] != "completed":
+            raise RuntimeError(f"{name} 动画失败：{json.dumps(result.get('last_response'))[:300]}")
+        response = result.get("last_response") or {}
+        frames = []
+        for index, image in enumerate(response.get("images") or []):
+            data = image["base64"] if isinstance(image, dict) else image
+            path = out_dir / f"{name}-{direction}-{index:02d}.png"
+            path.write_bytes(base64.b64decode(data) if isinstance(data, str) and not data.startswith("http") else _download(data))
+            frames.append(path)
+        results[direction] = frames
+    (out_dir / f"{name}-last-response.json").write_text(json.dumps({k: v for k, v in (response if job_ids else {}).items() if k != "images"}, ensure_ascii=False, indent=2)[:4000])
+    usage = {"type": "usd", "usd": total_usd} if total_usd else job.get("usage")
+    _record({"time": time.strftime("%Y-%m-%d %H:%M:%S"), "name": name, "endpoint": "/characters/animations", "usage": usage,
+             "seconds": round(time.time() - started, 1), "jobs": len(job_ids)})
+    (out_dir / f"{name}.json").write_text(json.dumps({**body, "usage": usage, "job": {k: v for k, v in job.items() if k != "usage"}}, ensure_ascii=False, indent=2))
+    return results
