@@ -301,7 +301,8 @@ function App() {
 
   if (room) {
     return (
-      <main className="app-shell">
+      <main className="app-shell gem-room">
+        <GemBackdrop />
         <header className="topbar">
           <Brand />
           <div className="topbar-right">
@@ -339,7 +340,8 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className="app-shell gem-home">
+      <GemBackdrop />
       <header className="topbar">
         <Brand />
         <div className="topbar-right">
@@ -477,6 +479,18 @@ function App() {
       <footer className="page-footer">围坐桌边，专注每一次选择。</footer>
       {confirmDialog}
     </main>
+  );
+}
+
+/** 全屏背景：把对局场景铺满窗口（16:9 居中裁切），上面盖一层罩色让面板更突出。首页和等候房间放在 <main> 的第一个子元素。 */
+function GemBackdrop() {
+  const base = import.meta.env.BASE_URL;
+  return (
+    <div className="gem-backdrop" aria-hidden="true">
+      <div className="gem-backdrop-art gem-backdrop-art--day" style={{ backgroundImage: `url(${base}art/bg/day.png)` }} />
+      <div className="gem-backdrop-art gem-backdrop-art--night" style={{ backgroundImage: `url(${base}art/bg/night.png)` }} />
+      <div className="gem-backdrop-veil" />
+    </div>
   );
 }
 

@@ -4,3 +4,9 @@
  */
 :root[data-theme="day"] { color-scheme: light; }
 :root[data-theme="day"] :is(.app-shell, .game-shell) * { scrollbar-color: #b8b1c6 var(--bg); }
+
+/* 全屏背景：白天版罩色变浅 */
+:root[data-theme="day"] .gem-backdrop { background: #efe4e6; }
+:root[data-theme="day"] .gem-backdrop-veil { background: #ffffff; opacity: 0.25; }
+:root[data-theme="day"] .gem-backdrop-art--day { display: block; }
+:root[data-theme="day"] .gem-backdrop-art--night { display: none; }

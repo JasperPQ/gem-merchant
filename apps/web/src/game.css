@@ -616,3 +616,19 @@ button.gm-card:hover:not(:disabled) { transform: translateY(calc(var(--px) * -2)
   .gm-result :is(.primary-button, .quiet-button) { white-space: nowrap; }
 }
 .game-shell .tut-link { white-space: nowrap; }
+
+/* ---------- 全屏背景：首页、等候房间的场景铺满窗口 ---------- */
+.gem-backdrop { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: #160d0f; }
+.gem-backdrop-art {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100vw, calc(100vh * 16 / 9));
+  height: max(100vh, calc(100vw * 9 / 16));
+  transform: translate(-50%, -50%);
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+}
+.gem-backdrop-art--day { display: none; }
+.gem-backdrop-veil { position: absolute; inset: 0; background: #0a0709; opacity: 0.4; }
+.app-shell.gem-home > :not(.gem-backdrop):not(.gm-modal-backdrop), .app-shell.gem-room > :not(.gem-backdrop):not(.gm-modal-backdrop) { position: relative; z-index: 1; }
