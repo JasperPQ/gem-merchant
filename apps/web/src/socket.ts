@@ -8,6 +8,9 @@ const options = {
   // 部署在子路径（如 /gem/）时，Socket.IO 也走同一前缀。
   path: `${import.meta.env.BASE_URL}socket.io`,
   autoConnect: false,
+  // 直接走 WebSocket，省掉先轮询再升级的几次来回（线路慢时进房间快一两秒）；连不上再退回轮询。
+  transports: ["websocket", "polling"],
+  tryAllTransports: true,
   reconnection: true,
   reconnectionAttempts: 8,
 };
